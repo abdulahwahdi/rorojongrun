@@ -1,0 +1,34 @@
+{
+     "GoVersion": "1.26",
+     "Version": "v1.20.0",
+     "ServiceName": "order",
+     "PackagePrefix": "monorepo/services/order",
+     "ProtoSource": "monorepo/sdk/order/proto",
+     "Owner": "",
+     "License": "",
+     "Year": 2026,
+     "IsMonorepo": true,
+     "RestHandler": true,
+     "GRPCHandler": false,
+     "GraphQLHandler": true,
+     "FiberRestHandler": false,
+     "KafkaHandler": true,
+     "SchedulerHandler": false,
+     "RedisSubsHandler": false,
+     "TaskQueueHandler": false,
+     "PostgresListenerHandler": false,
+     "RabbitMQHandler": false,
+     "IsWorkerActive": true,
+     "RedisDeps": false,
+     "SQLDeps": true,
+     "MongoDeps": false,
+     "SQLUseGORM": true,
+     "ArangoDeps": false,
+     "SQLDriver": "postgres",
+     "WorkerPlugins": null,
+     "Modules": [
+          {
+               "ModuleName": "order"
+          }
+     ]
+}

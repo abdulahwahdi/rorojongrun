@@ -1,0 +1,34 @@
+{
+     "GoVersion": "1.26",
+     "Version": "v1.20.0",
+     "ServiceName": "kitchen",
+     "PackagePrefix": "monorepo/services/kitchen",
+     "ProtoSource": "monorepo/sdk/kitchen/proto",
+     "Owner": "",
+     "License": "",
+     "Year": 2026,
+     "IsMonorepo": true,
+     "RestHandler": true,
+     "GRPCHandler": true,
+     "GraphQLHandler": false,
+     "FiberRestHandler": false,
+     "KafkaHandler": true,
+     "SchedulerHandler": false,
+     "RedisSubsHandler": false,
+     "TaskQueueHandler": false,
+     "PostgresListenerHandler": false,
+     "RabbitMQHandler": false,
+     "IsWorkerActive": true,
+     "RedisDeps": false,
+     "SQLDeps": true,
+     "MongoDeps": false,
+     "SQLUseGORM": true,
+     "ArangoDeps": false,
+     "SQLDriver": "postgres",
+     "WorkerPlugins": null,
+     "Modules": [
+          {
+               "ModuleName": "kitchen"
+          }
+     ]
+}

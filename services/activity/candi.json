@@ -1,0 +1,34 @@
+{
+     "GoVersion": "1.26",
+     "Version": "v1.20.0",
+     "ServiceName": "activity",
+     "PackagePrefix": "monorepo/services/activity",
+     "ProtoSource": "monorepo/sdk/activity/proto",
+     "Owner": "",
+     "License": "",
+     "Year": 2026,
+     "IsMonorepo": true,
+     "RestHandler": true,
+     "GRPCHandler": false,
+     "GraphQLHandler": false,
+     "FiberRestHandler": false,
+     "KafkaHandler": true,
+     "SchedulerHandler": false,
+     "RedisSubsHandler": false,
+     "TaskQueueHandler": false,
+     "PostgresListenerHandler": false,
+     "RabbitMQHandler": false,
+     "IsWorkerActive": true,
+     "RedisDeps": false,
+     "SQLDeps": false,
+     "MongoDeps": true,
+     "SQLUseGORM": false,
+     "ArangoDeps": false,
+     "SQLDriver": "",
+     "WorkerPlugins": null,
+     "Modules": [
+          {
+               "ModuleName": "activity"
+          }
+     ]
+}

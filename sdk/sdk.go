@@ -6,6 +6,13 @@ import (
 	"sync"
 
 	// @candi:serviceImport
+	"monorepo/sdk/activity"
+	"monorepo/sdk/kitchen"
+	"monorepo/sdk/notification"
+	"monorepo/sdk/order"
+	"monorepo/sdk/payment"
+	"monorepo/sdk/shipment"
+	"monorepo/sdk/user"
 )
 
 // Option func type
@@ -34,14 +41,98 @@ func GetSDK() SDK {
 
 // @candi:construct
 
+// SetNotification option func
+func SetNotification(notification notification.Notification) Option {
+	return func(s *sdkInstance) {
+		s.notification = notification
+	}
+}
+
+// SetKitchen option func
+func SetKitchen(kitchen kitchen.Kitchen) Option {
+	return func(s *sdkInstance) {
+		s.kitchen = kitchen
+	}
+}
+
+// SetShipment option func
+func SetShipment(shipment shipment.Shipment) Option {
+	return func(s *sdkInstance) {
+		s.shipment = shipment
+	}
+}
+
+// SetActivity option func
+func SetActivity(activity activity.Activity) Option {
+	return func(s *sdkInstance) {
+		s.activity = activity
+	}
+}
+
+// SetOrder option func
+func SetOrder(order order.Order) Option {
+	return func(s *sdkInstance) {
+		s.order = order
+	}
+}
+
+// SetPayment option func
+func SetPayment(payment payment.Payment) Option {
+	return func(s *sdkInstance) {
+		s.payment = payment
+	}
+}
+
+// SetUser option func
+func SetUser(user user.User) Option {
+	return func(s *sdkInstance) {
+		s.user = user
+	}
+}
+
 // SDK instance abstraction
 type SDK interface {
 	// @candi:serviceMethod
+	Notification() notification.Notification
+	Kitchen() kitchen.Kitchen
+	Shipment() shipment.Shipment
+	Activity() activity.Activity
+	Order() order.Order
+	Payment() payment.Payment
+	User() user.User
 }
 
 // sdkInstance implementation
 type sdkInstance struct {
 	// @candi:serviceField
+	notification notification.Notification
+	kitchen      kitchen.Kitchen
+	shipment     shipment.Shipment
+	activity     activity.Activity
+	order        order.Order
+	payment      payment.Payment
+	user         user.User
 }
 
 // @candi:instanceMethod
+func (s *sdkInstance) Notification() notification.Notification {
+	return s.notification
+}
+func (s *sdkInstance) Kitchen() kitchen.Kitchen {
+	return s.kitchen
+}
+func (s *sdkInstance) Shipment() shipment.Shipment {
+	return s.shipment
+}
+func (s *sdkInstance) Activity() activity.Activity {
+	return s.activity
+}
+func (s *sdkInstance) Order() order.Order {
+	return s.order
+}
+func (s *sdkInstance) Payment() payment.Payment {
+	return s.payment
+}
+func (s *sdkInstance) User() user.User {
+	return s.user
+}
