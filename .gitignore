@@ -30,3 +30,13 @@ go.work.sum
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# candi (golangid/candi) generated project artifacts
+vendor/
+bin/
+*.pem
+*.key
+__debug_bin
+mocks/
+.DS_Store
+.scannerwork/
