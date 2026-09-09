@@ -26,6 +26,10 @@ clear-docker:
 	docker rm -f activity
 	docker rmi -f activity
 
+# regenerate swagger docs (requires: go install github.com/swaggo/swag/cmd/swag@latest)
+docs:
+	@swag init -g main.go -d . --output docs --parseDependency --parseInternal
+
 # mocks all interfaces for unit test
 mocks:
 	@mockery --all --keeptree --dir=internal --output=pkg/mocks --case underscore
