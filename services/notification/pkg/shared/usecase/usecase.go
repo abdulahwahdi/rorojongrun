@@ -3,10 +3,13 @@
 package usecase
 
 import (
+	"context"
 	"sync"
 
 	// @candi:usecaseImport
+	otpusecase "monorepo/services/notification/internal/modules/otp/usecase"
 	notificationusecase "monorepo/services/notification/internal/modules/notification/usecase"
+	notificationdomain "monorepo/services/notification/internal/modules/notification/domain"
 	"monorepo/services/notification/pkg/shared/usecase/common"
 
 	"github.com/golangid/candi/codebase/factory/dependency"
@@ -16,11 +19,13 @@ type (
 	// Usecase unit of work for all usecase in modules
 	Usecase interface {
 		// @candi:usecaseMethod
+		Otp() otpusecase.OtpUsecase
 		Notification() notificationusecase.NotificationUsecase
 	}
 
 	usecaseUow struct {
 		// @candi:usecaseField
+		otpusecase.OtpUsecase
 		notificationusecase.NotificationUsecase
 	}
 )
@@ -36,6 +41,8 @@ func SetSharedUsecase(deps dependency.Dependency) {
 		var setSharedUsecaseFunc func(common.Usecase)
 
 		// @candi:usecaseCommon
+		usecaseInst.OtpUsecase, setSharedUsecaseFunc = otpusecase.NewOtpUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
 		usecaseInst.NotificationUsecase, setSharedUsecaseFunc = notificationusecase.NewNotificationUsecase(deps)
 		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
 
@@ -52,6 +59,17 @@ func GetSharedUsecase() Usecase {
 }
 
 // @candi:usecaseImplementation
+func (uc *usecaseUow) Otp() otpusecase.OtpUsecase {
+	return uc.OtpUsecase
+}
+
 func (uc *usecaseUow) Notification() notificationusecase.NotificationUsecase {
 	return uc.NotificationUsecase
+}
+
+// SendNotification bridges common.Usecase's cross-module method to the real
+// notification usecase — see pkg/shared/usecase/common/common.go for why
+// this indirection exists (avoids an import cycle).
+func (uc *usecaseUow) SendNotification(ctx context.Context, req *notificationdomain.RequestSendNotification) (jobID string, err error) {
+	return uc.NotificationUsecase.SendNotification(ctx, req)
 }

@@ -4,9 +4,14 @@ package shared
 
 // Environment additional in this service
 type Environment struct {
-	// more additional environment with struct tag is environment key example:
-	// ExampleHost string `env:"EXAMPLE_HOST"`
+	SMTPHost        string `env:"SMTP_HOST"`
+	SMTPPort        int    `env:"SMTP_PORT"`
+	SMTPUsername    string `env:"SMTP_USERNAME"`
+	SMTPPassword    string `env:"SMTP_PASSWORD"`
+	SMTPFromAddress string `env:"SMTP_FROM_ADDRESS"`
+	SMTPFromName    string `env:"SMTP_FROM_NAME"`
 
+	FCMCredentialsJSONPath string `env:"FCM_CREDENTIALS_JSON_PATH"`
 }
 
 var sharedEnv Environment

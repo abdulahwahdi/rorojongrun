@@ -4,6 +4,7 @@ package notification
 
 import (
 	"monorepo/services/notification/internal/modules/notification"
+	"monorepo/services/notification/internal/modules/otp"
 
 	"monorepo/services/notification/configs"
 
@@ -28,6 +29,7 @@ func NewService(cfg *config.Config) factory.ServiceFactory {
 
 	modules := []factory.ModuleFactory{
 		notification.NewModule(deps),
+		otp.NewModule(deps),
 	}
 
 	s := &Service{

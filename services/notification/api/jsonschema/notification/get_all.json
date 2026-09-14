@@ -1,0 +1,31 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for get all notification logs",
+	"type": "object",
+	"properties": {
+		"page": {
+			"type": "number",
+			"default": 1,
+			"minimum": 0
+		},
+		"limit": {
+			"type": "number",
+			"default": 10,
+			"minimum": 1
+		},
+		"channel": {
+			"type": "string"
+		},
+		"templateCode": {
+			"type": "string"
+		},
+		"recipient": {
+			"type": "string"
+		},
+		"status": {
+			"type": "string",
+			"enum": ["pending", "sent", "failed", ""]
+		}
+	},
+	"additionalProperties": true
+}
