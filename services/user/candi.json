@@ -28,6 +28,21 @@
      "WorkerPlugins": null,
      "Modules": [
           {
+               "ModuleName": "auth"
+          },
+          {
+               "ModuleName": "client"
+          },
+          {
+               "ModuleName": "menu"
+          },
+          {
+               "ModuleName": "rbac"
+          },
+          {
+               "ModuleName": "realm"
+          },
+          {
                "ModuleName": "user"
           }
      ]

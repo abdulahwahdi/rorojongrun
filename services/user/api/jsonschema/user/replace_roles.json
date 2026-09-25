@@ -1,0 +1,10 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for replace user roles",
+	"type": "object",
+	"properties": {
+		"roleIds": { "type": "array", "items": { "type": "integer", "minimum": 1 } }
+	},
+	"required": ["roleIds"],
+	"additionalProperties": false
+}

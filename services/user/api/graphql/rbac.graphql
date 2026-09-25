@@ -1,0 +1,63 @@
+# RbacModule Resolver Area
+type RbacQueryResolver {
+	getAllRole(realm: String!, filter: FilterListInputResolver): RoleListResolver! @permissionACL(permissionCode: getAllRole)
+	getDetailRole(realm: String!, id: Int!): RoleResolver! @permissionACL(permissionCode: getDetailRole)
+	getRolePermissions(realm: String!, roleId: Int!): [PermissionResolver!]! @permissionACL(permissionCode: getRolePermissions)
+	getAllPermission(realm: String!, filter: FilterListInputResolver): PermissionListResolver! @permissionACL(permissionCode: getAllPermission)
+	getDetailPermission(realm: String!, id: Int!): PermissionResolver! @permissionACL(permissionCode: getDetailPermission)
+}
+
+type RbacMutationResolver {
+	createRole(realm: String!, data: RoleInputResolver!): RoleResolver! @permissionACL(permissionCode: createRole)
+	updateRole(realm: String!, id: Int!, data: RoleInputResolver!): String! @permissionACL(permissionCode: updateRole)
+	deleteRole(realm: String!, id: Int!, force: Boolean): String! @permissionACL(permissionCode: deleteRole)
+	addRolePermission(realm: String!, roleId: Int!, permissionId: Int!): String! @permissionACL(permissionCode: addRolePermission)
+	replaceRolePermissions(realm: String!, roleId: Int!, permissionIds: [Int!]!): String! @permissionACL(permissionCode: replaceRolePermissions)
+	removeRolePermission(realm: String!, roleId: Int!, permissionId: Int!): String! @permissionACL(permissionCode: removeRolePermission)
+	createPermission(realm: String!, data: PermissionInputResolver!): PermissionResolver! @permissionACL(permissionCode: createPermission)
+	updatePermission(realm: String!, id: Int!, data: PermissionInputResolver!): String! @permissionACL(permissionCode: updatePermission)
+	deletePermission(realm: String!, id: Int!): String! @permissionACL(permissionCode: deletePermission)
+	upsertPermissions(realm: String!, permissions: [PermissionInputResolver!]!): [PermissionResolver!]! @permissionACL(permissionCode: upsertPermissions)
+}
+
+type RoleListResolver {
+	meta: MetaResolver!
+	data: [RoleResolver!]!
+}
+
+type RoleResolver {
+	id: Int!
+	name: String!
+	description: String!
+	permissions: [PermissionResolver!]!
+	createdAt: String!
+	updatedAt: String!
+}
+
+input RoleInputResolver {
+	name: String!
+	description: String!
+}
+
+type PermissionListResolver {
+	meta: MetaResolver!
+	data: [PermissionResolver!]!
+}
+
+type PermissionResolver {
+	id: Int!
+	service: String!
+	code: String!
+	type: String!
+	description: String!
+	createdAt: String!
+	updatedAt: String!
+}
+
+input PermissionInputResolver {
+	service: String!
+	code: String!
+	"api (default) or ui"
+	type: String!
+	description: String!
+}

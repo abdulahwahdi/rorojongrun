@@ -3,7 +3,6 @@
 schema {
 	query: Query
 	mutation: Mutation
-	subscription: Subscription
 }
 
 enum AuthTypeDirective {
@@ -16,15 +15,21 @@ directive @permissionACL(permissionCode: String!) on FIELD_DEFINITION
 
 type Query {
 	user: UserQueryResolver @auth(authType: BEARER)
+	realm: RealmQueryResolver @auth(authType: BEARER)
+	rbac: RbacQueryResolver @auth(authType: BEARER)
+	menu: MenuQueryResolver @auth(authType: BEARER)
+	client: ClientQueryResolver @auth(authType: BEARER)
+	auth: AuthQueryResolver @auth(authType: BEARER)
 	# @candi:queryRoot
 }
 
 type Mutation {
 	user: UserMutationResolver @auth(authType: BEARER)
+	realm: RealmMutationResolver @auth(authType: BEARER)
+	rbac: RbacMutationResolver @auth(authType: BEARER)
+	menu: MenuMutationResolver @auth(authType: BEARER)
+	client: ClientMutationResolver @auth(authType: BEARER)
+	auth: AuthMutationResolver @auth(authType: BEARER)
 	# @candi:mutationRoot
 }
 
-type Subscription {
-	user: UserSubscriptionResolver
-	# @candi:subscriptionRoot
-}

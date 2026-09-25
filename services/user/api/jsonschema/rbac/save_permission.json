@@ -1,0 +1,13 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for create / update permission",
+	"type": "object",
+	"properties": {
+		"service": { "type": "string", "minLength": 1, "maxLength": 63 },
+		"code": { "type": "string", "minLength": 1, "maxLength": 100 },
+		"type": { "type": "string", "enum": ["", "api", "ui"] },
+		"description": { "type": "string" }
+	},
+	"required": ["service", "code"],
+	"additionalProperties": false
+}

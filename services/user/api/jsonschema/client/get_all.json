@@ -1,0 +1,16 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for get all client",
+	"type": "object",
+	"properties": {
+		"page": { "type": "number", "default": 1, "minimum": 0 },
+		"limit": { "type": "number", "default": 10, "minimum": 1 },
+		"orderBy": { "type": "string", "enum": ["", "id", "client_id", "name", "created_at", "updated_at"] },
+		"sort": { "type": "string", "enum": ["", "asc", "desc", "ASC", "DESC"] },
+		"search": { "type": "string" },
+		"clientId": { "type": "string" },
+		"type": { "type": "string", "enum": ["", "public", "confidential"] },
+		"enabled": { "type": ["boolean", "null"] }
+	},
+	"additionalProperties": true
+}

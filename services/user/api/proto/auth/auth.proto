@@ -1,0 +1,51 @@
+syntax = "proto3";
+package auth;
+option go_package = "monorepo/sdk/user/proto/auth";
+
+// AuthHandler is the internal (service-to-service) authorization API of the user service.
+service AuthHandler {
+	// CheckPermission tells whether a principal of a realm may use a permission code of a service
+	rpc CheckPermission(CheckPermissionRequest) returns (CheckPermissionResponse);
+	rpc GetUser(GetUserRequest) returns (UserModel);
+	// GetUserPermissions lists the effective permission codes of a user for a service
+	rpc GetUserPermissions(GetUserPermissionsRequest) returns (GetUserPermissionsResponse);
+}
+
+message CheckPermissionRequest {
+	string realm = 1;
+	string userId = 2;
+	int64 sessionId = 3; // 0 for tokens without a session (service tokens)
+	string service = 4;
+	string code = 5;
+}
+
+message CheckPermissionResponse {
+	bool allowed = 1;
+	string role = 2; // comma separated role names of the user
+}
+
+message GetUserRequest {
+	string realm = 1;
+	int64 id = 2;
+}
+
+message UserModel {
+	int64 id = 1;
+	string realm = 2;
+	string username = 3;
+	string email = 4;
+	string phone = 5;
+	string fullName = 6;
+	string status = 7;
+	repeated string roles = 8;
+}
+
+message GetUserPermissionsRequest {
+	string realm = 1;
+	int64 userId = 2;
+	string service = 3;
+}
+
+message GetUserPermissionsResponse {
+	repeated string codes = 1;
+}

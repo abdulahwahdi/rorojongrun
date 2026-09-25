@@ -1,0 +1,16 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for create user",
+	"type": "object",
+	"properties": {
+		"username": { "type": "string", "minLength": 3, "maxLength": 100 },
+		"email": { "type": "string", "maxLength": 255 },
+		"phone": { "type": "string", "maxLength": 30 },
+		"fullName": { "type": "string", "maxLength": 255 },
+		"password": { "type": "string", "minLength": 8, "maxLength": 128 },
+		"status": { "type": "string", "enum": ["", "active", "disabled"] },
+		"roleIds": { "type": "array", "items": { "type": "integer", "minimum": 1 } }
+	},
+	"required": ["username", "password"],
+	"additionalProperties": false
+}

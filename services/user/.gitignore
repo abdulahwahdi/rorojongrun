@@ -1,5 +1,5 @@
 bin
 vendor
 main_service.go
-user
+/user
 coverage.txt

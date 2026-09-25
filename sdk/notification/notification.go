@@ -9,6 +9,25 @@ type Notification interface {
 	// notification to actually be delivered.
 	SendNotification(ctx context.Context, req SendNotificationRequest) (jobID string, err error)
 	GetAllNotificationLogs(ctx context.Context, filter GetNotificationLogsFilter) (NotificationLogListResponse, error)
+	// RequestOTP generates an OTP code and delivers it; returns as soon as delivery is enqueued.
+	RequestOTP(ctx context.Context, req RequestOTPRequest) (jobID string, err error)
+	// VerifyOTP checks a submitted code. A wrong / expired / unknown code or too many attempts is
+	// reported as verified=false with a nil error; only transport or server failures are errors.
+	VerifyOTP(ctx context.Context, req VerifyOTPRequest) (verified bool, err error)
+}
+
+// RequestOTPRequest mirrors services/notification's otp domain.RequestOTP.
+type RequestOTPRequest struct {
+	Recipient string `json:"recipient"`
+	Channel   string `json:"channel"` // email | push
+	Purpose   string `json:"purpose"`
+}
+
+// VerifyOTPRequest mirrors services/notification's otp domain.RequestVerifyOTP.
+type VerifyOTPRequest struct {
+	Recipient string `json:"recipient"`
+	Purpose   string `json:"purpose"`
+	Code      string `json:"code"`
 }
 
 // SendNotificationRequest is the payload for SendNotification. Kept as a

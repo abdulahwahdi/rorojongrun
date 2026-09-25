@@ -1,0 +1,41 @@
+# MenuModule Resolver Area
+type MenuQueryResolver {
+	getAllMenu(realm: String!, clientId: String!, tree: Boolean, filter: FilterListInputResolver): MenuListResolver! @permissionACL(permissionCode: getAllMenu)
+	getDetailMenu(realm: String!, clientId: String!, id: Int!): MenuResolver! @permissionACL(permissionCode: getDetailMenu)
+}
+
+type MenuMutationResolver {
+	createMenu(realm: String!, clientId: String!, data: MenuInputResolver!): MenuResolver! @permissionACL(permissionCode: createMenu)
+	updateMenu(realm: String!, clientId: String!, id: Int!, data: MenuInputResolver!): String! @permissionACL(permissionCode: updateMenu)
+	deleteMenu(realm: String!, clientId: String!, id: Int!): String! @permissionACL(permissionCode: deleteMenu)
+}
+
+type MenuListResolver {
+	meta: MetaResolver!
+	data: [MenuResolver!]!
+}
+
+type MenuResolver {
+	id: Int!
+	key: String!
+	label: String!
+	path: String!
+	icon: String!
+	sortOrder: Int!
+	parentId: Int!
+	permissionId: Int!
+	permission: String!
+	children: [MenuResolver!]!
+	createdAt: String!
+	updatedAt: String!
+}
+
+input MenuInputResolver {
+	key: String!
+	label: String!
+	path: String!
+	icon: String!
+	sortOrder: Int!
+	parentId: Int
+	permissionId: Int
+}

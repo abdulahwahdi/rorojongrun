@@ -3,9 +3,17 @@
 package user
 
 import (
+	"context"
+
+	"monorepo/services/user/internal/modules/auth"
+	"monorepo/services/user/internal/modules/client"
+	"monorepo/services/user/internal/modules/menu"
+	"monorepo/services/user/internal/modules/rbac"
+	"monorepo/services/user/internal/modules/realm"
 	"monorepo/services/user/internal/modules/user"
 
 	"monorepo/services/user/configs"
+	"monorepo/services/user/internal/bootstrap"
 
 	"github.com/golangid/candi/codebase/factory"
 	"github.com/golangid/candi/codebase/factory/dependency"
@@ -26,7 +34,17 @@ type Service struct {
 func NewService(cfg *config.Config) factory.ServiceFactory {
 	deps := configs.LoadServiceConfigs(cfg)
 
+	// seed the master realm, superadmin role / user and admin client before serving anything
+	if err := bootstrap.Run(context.Background()); err != nil {
+		panic("bootstrap failed (were the migrations applied? `make migration service=user`): " + err.Error())
+	}
+
 	modules := []factory.ModuleFactory{
+		auth.NewModule(deps),
+		client.NewModule(deps),
+		menu.NewModule(deps),
+		rbac.NewModule(deps),
+		realm.NewModule(deps),
 		user.NewModule(deps),
 	}
 

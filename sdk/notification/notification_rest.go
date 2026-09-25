@@ -1,9 +1,11 @@
 package notification
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -117,4 +119,65 @@ func (r *notificationRESTImpl) GetAllNotificationLogs(ctx context.Context, filte
 		}
 	}
 	return result, nil
+}
+
+// RequestOTP calls POST /v1/otp/request
+func (r *notificationRESTImpl) RequestOTP(ctx context.Context, req RequestOTPRequest) (jobID string, err error) {
+	respBody, status, err := r.doOnce(ctx, http.MethodPost, "/v1/otp/request", req)
+	if err != nil {
+		return "", err
+	}
+	if status != http.StatusAccepted && status != http.StatusOK {
+		return "", fmt.Errorf("notification: request otp failed with status %d: %s", status, string(respBody))
+	}
+	var envelope httpEnvelope
+	if err = json.Unmarshal(respBody, &envelope); err != nil {
+		return "", err
+	}
+	var data struct {
+		JobID string `json:"jobId"`
+	}
+	if err = json.Unmarshal(envelope.Data, &data); err != nil {
+		return "", err
+	}
+	return data.JobID, nil
+}
+
+// VerifyOTP calls POST /v1/otp/verify. Rejections (400 mismatch, 404 unknown, 410 expired,
+// 429 too many attempts) are verified=false with a nil error. It is never retried: every
+// attempt counts against the code's attempt limit on the server.
+func (r *notificationRESTImpl) VerifyOTP(ctx context.Context, req VerifyOTPRequest) (verified bool, err error) {
+	respBody, status, err := r.doOnce(ctx, http.MethodPost, "/v1/otp/verify", req)
+	if err != nil {
+		return false, err
+	}
+	switch status {
+	case http.StatusOK:
+		return true, nil
+	case http.StatusBadRequest, http.StatusNotFound, http.StatusGone, http.StatusTooManyRequests:
+		return false, nil
+	}
+	return false, fmt.Errorf("notification: verify otp failed with status %d: %s", status, string(respBody))
+}
+
+// doOnce performs a single JSON request without the retrying client, returning body and status.
+func (r *notificationRESTImpl) doOnce(ctx context.Context, method, path string, payload any) ([]byte, int, error) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, 0, err
+	}
+	httpReq, err := http.NewRequestWithContext(ctx, method, r.host+path, bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, err
+	}
+	for k, v := range r.headers() {
+		httpReq.Header.Set(k, v)
+	}
+	resp, err := (&http.Client{Timeout: 10 * time.Second}).Do(httpReq)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	respBody, err := io.ReadAll(resp.Body)
+	return respBody, resp.StatusCode, err
 }

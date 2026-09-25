@@ -234,6 +234,29 @@ Rules:
   duplication across services becomes a problem — don't create that
   abstraction preemptively before at least two services need it.
 
+## Authentication & RBAC (user service)
+
+`services/user` is the identity and access service for every app and service. Full reference:
+`services/user/docs/realms-and-rbac.md`.
+
+- **Realms** are isolated namespaces (users, roles, permissions, clients, menus, signing keys). The
+  `master` realm is seeded on first start together with a `superadmin` role (wildcard permission `*:*`),
+  the first superadmin (`BOOTSTRAP_ADMIN_USERNAME` / `BOOTSTRAP_ADMIN_PASSWORD`) and the public
+  `admin-cli` client. Only master-realm tokens can create/delete realms or administer other realms.
+- **Tokens** are RS256 JWTs, one signing key set per realm, published as JWKS at
+  `GET /v1/realms/{realm}/.well-known/jwks.json`. `iss` = `<ISSUER_BASE_URL>/realms/<realm>`,
+  `sub` = user id, `role` = role names, `additional` = `{realm, sid, cid, typ}` (`sid` = refresh-token
+  family, `typ` = `user` | `service`). Permissions are **not** in the token.
+- **Permission codes** are keyed by `(realm, service, code)`. Handlers keep using their own unqualified
+  codes (`h.mw.HTTPPermissionACL("sendNotification")`); the checker adds the service name. `*` matches
+  any service / any code.
+- **Other services** must not hand-roll auth: use `globalshared/auth` (`TokenValidator` over
+  `JWKSKeyProvider`, `ACLChecker` over `auth.NewSDKPermissionClient(sdk user client)`) in `configs.go`
+  instead of `shared.DefaultMiddleware`. The permission decision is `user`'s gRPC `CheckPermission`
+  (protected by the internal basic auth key), cached for a few seconds by the checker.
+- **REST routes of the user service are registered flat** (`root.GET("/v1/realms/:realm/users", ...)`),
+  never with `root.Group("/v1/realms")`: every module shares that prefix and chi cannot mount one prefix twice.
+
 ## Running services locally
 
 ```bash

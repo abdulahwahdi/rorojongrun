@@ -1,0 +1,16 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for create / update menu",
+	"type": "object",
+	"properties": {
+		"key": { "type": "string", "minLength": 1, "maxLength": 100 },
+		"label": { "type": "string", "minLength": 1, "maxLength": 255 },
+		"path": { "type": "string", "maxLength": 255 },
+		"icon": { "type": "string", "maxLength": 100 },
+		"sortOrder": { "type": "integer" },
+		"parentId": { "type": ["integer", "null"], "minimum": 1 },
+		"permissionId": { "type": ["integer", "null"], "minimum": 1 }
+	},
+	"required": ["key", "label"],
+	"additionalProperties": false
+}

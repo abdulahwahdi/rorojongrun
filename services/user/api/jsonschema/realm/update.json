@@ -1,0 +1,15 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for update realm",
+	"type": "object",
+	"properties": {
+		"displayName": { "type": "string", "maxLength": 255 },
+		"enabled": { "type": "boolean" },
+		"accessTokenTtlSec": { "type": "integer", "minimum": 30 },
+		"refreshTokenTtlSec": { "type": "integer", "minimum": 60 },
+		"maxFailedAttempts": { "type": "integer", "minimum": 1 },
+		"lockoutSec": { "type": "integer", "minimum": 0 },
+		"otpLoginEnabled": { "type": "boolean" }
+	},
+	"additionalProperties": false
+}

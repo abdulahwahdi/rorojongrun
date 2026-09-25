@@ -1,0 +1,49 @@
+# ClientModule Resolver Area
+type ClientQueryResolver {
+	getAllClient(realm: String!, filter: FilterListInputResolver): ClientListResolver! @permissionACL(permissionCode: getAllClient)
+	getDetailClient(realm: String!, id: Int!): ClientResolver! @permissionACL(permissionCode: getDetailClient)
+}
+
+type ClientMutationResolver {
+	createClient(realm: String!, data: ClientCreateInputResolver!): ClientResolver! @permissionACL(permissionCode: createClient)
+	updateClient(realm: String!, id: Int!, data: ClientUpdateInputResolver!): String! @permissionACL(permissionCode: updateClient)
+	deleteClient(realm: String!, id: Int!): String! @permissionACL(permissionCode: deleteClient)
+	rotateClientSecret(realm: String!, id: Int!): ClientResolver! @permissionACL(permissionCode: rotateClientSecret)
+}
+
+type ClientListResolver {
+	meta: MetaResolver!
+	data: [ClientResolver!]!
+}
+
+type ClientResolver {
+	id: Int!
+	clientId: String!
+	name: String!
+	description: String!
+	type: String!
+	grantTypes: [String!]!
+	enabled: Boolean!
+	serviceUserId: Int!
+	"Only filled right after create / rotate"
+	clientSecret: String!
+	createdAt: String!
+	updatedAt: String!
+}
+
+input ClientCreateInputResolver {
+	clientId: String!
+	name: String!
+	description: String!
+	"public (default) or confidential"
+	type: String!
+	grantTypes: [String!]!
+	enabled: Boolean
+}
+
+input ClientUpdateInputResolver {
+	name: String!
+	description: String!
+	grantTypes: [String!]!
+	enabled: Boolean
+}

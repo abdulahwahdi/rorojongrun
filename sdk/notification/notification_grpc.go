@@ -55,3 +55,11 @@ func (r *notificationGRPCImpl) SendNotification(ctx context.Context, req SendNot
 func (r *notificationGRPCImpl) GetAllNotificationLogs(ctx context.Context, filter GetNotificationLogsFilter) (NotificationLogListResponse, error) {
 	return NotificationLogListResponse{}, errGRPCNotAvailable
 }
+
+func (r *notificationGRPCImpl) RequestOTP(ctx context.Context, req RequestOTPRequest) (string, error) {
+	return "", errGRPCNotAvailable
+}
+
+func (r *notificationGRPCImpl) VerifyOTP(ctx context.Context, req VerifyOTPRequest) (bool, error) {
+	return false, errGRPCNotAvailable
+}

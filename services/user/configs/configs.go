@@ -6,8 +6,10 @@ import (
 	"context"
 
 	"monorepo/sdk"
+	"monorepo/sdk/notification"
 	"monorepo/services/user/api"
 	"monorepo/services/user/pkg/shared"
+	sharedmw "monorepo/services/user/pkg/shared/middleware"
 	"monorepo/services/user/pkg/shared/repository"
 	"monorepo/services/user/pkg/shared/usecase"
 
@@ -33,7 +35,7 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 	shared.SetEnv(sharedEnv)
 
 	logger.InitZap()
-	// logger.SetMaskLog(logger.NewMasker()) // add this for mask sensitive information
+	logger.SetMaskLog(logger.NewMasker("password", "refreshToken", "accessToken", "clientSecret"))
 
 	baseCfg.LoadFunc(func(ctx context.Context) []interfaces.Closer {
 		otel, _ := tracer.InitOtel(baseCfg.ServiceName)
@@ -41,9 +43,14 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 		sqlDeps := database.InitSQLDatabase()
 		// mongoDeps := database.InitMongoDB(ctx)
 
-		sdk.SetGlobalSDK(
-		// init service client sdk
-		)
+		// OTP login goes through the notification service, it is optional
+		var sdkOptions []sdk.Option
+		if sharedEnv.NotificationHost != "" {
+			sdkOptions = append(sdkOptions, sdk.SetNotification(
+				notification.NewNotificationServiceREST(sharedEnv.NotificationHost, sharedEnv.NotificationAuthKey),
+			))
+		}
+		sdk.SetGlobalSDK(sdkOptions...)
 
 		locker := &candiutils.NoopLocker{}
 
@@ -76,8 +83,8 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 	usecase.SetSharedUsecase(deps)
 
 	deps.SetMiddleware(middleware.NewMiddlewareWithOption(
-		middleware.SetTokenValidator(&shared.DefaultMiddleware{}),
-		middleware.SetACLPermissionChecker(&shared.DefaultMiddleware{}),
+		middleware.SetTokenValidator(sharedmw.NewTokenValidator()),
+		middleware.SetACLPermissionChecker(sharedmw.NewACLChecker()),
 		middleware.SetUserIDExtractor(func(tokenClaim *candishared.TokenClaim) (userID string) {
 			return tokenClaim.Subject
 		}),
