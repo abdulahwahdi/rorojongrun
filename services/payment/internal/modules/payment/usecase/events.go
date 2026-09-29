@@ -3,11 +3,11 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"monorepo/globalshared/money"
 	"strings"
 	"time"
 
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/logger"
@@ -73,8 +73,8 @@ func (uc *paymentUsecaseImpl) enqueueEmail(ctx context.Context, templateCode str
 	}
 	vars := map[string]any{
 		"customerName": name, "referenceId": p.ReferenceID, "description": p.Description,
-		"totalAmount": helper.FormatIDR(total), "amount": helper.FormatIDR(p.Amount),
-		"fee": helper.FormatIDR(total - p.Amount), "methodName": methodName,
+		"totalAmount": money.FormatIDR(total), "amount": money.FormatIDR(p.Amount),
+		"fee": money.FormatIDR(total - p.Amount), "methodName": methodName,
 		"expiresAt": formatTime(p.ExpiresAt), "paymentUrl": uc.paymentURL(p),
 	}
 	if txn != nil {

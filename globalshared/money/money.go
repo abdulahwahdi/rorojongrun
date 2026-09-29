@@ -1,4 +1,5 @@
-package helper
+// Package money formats amounts for people (emails, printed invoices).
+package money
 
 import (
 	"strconv"
