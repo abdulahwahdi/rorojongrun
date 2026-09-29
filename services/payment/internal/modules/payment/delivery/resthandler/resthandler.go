@@ -237,11 +237,7 @@ func (h *RestHandler) confirmCash(rw http.ResponseWriter, req *http.Request) {
 	if !rest.DecodeBody(rw, req, h.validator, "payment/confirm_cash", &payload) {
 		return
 	}
-	actor := ""
-	if claim := auth.TokenClaimFromContext(ctx); claim != nil {
-		actor = claim.Subject
-	}
-	res, err := h.uc.Payment().ConfirmCashPayment(ctx, restserver.URLParam(req, "cashCode"), actor, &payload)
+	res, err := h.uc.Payment().ConfirmCashPayment(ctx, restserver.URLParam(req, "cashCode"), auth.SubjectFromContext(ctx), &payload)
 	if err != nil {
 		rest.WriteError(rw, err)
 		return
