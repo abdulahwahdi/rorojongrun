@@ -6,9 +6,9 @@ import (
 	"errors"
 	"time"
 
+	"monorepo/globalshared/rest"
 	proto "monorepo/sdk/payment/proto/payment"
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 	"monorepo/services/payment/pkg/shared/usecase"
 
@@ -45,7 +45,7 @@ func (h *GRPCHandler) Register(server *grpc.Server, mwGroup *types.MiddlewareGro
 }
 
 func grpcError(err error) error {
-	var appErr *helper.AppError
+	var appErr *rest.AppError
 	if errors.As(err, &appErr) {
 		switch appErr.Status {
 		case 404:

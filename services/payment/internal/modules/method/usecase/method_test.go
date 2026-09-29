@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/method/domain"
-	"monorepo/services/payment/pkg/helper"
 	mockgatewayrepo "monorepo/services/payment/pkg/mocks/modules/gateway/repository"
 	mockmethodrepo "monorepo/services/payment/pkg/mocks/modules/method/repository"
 	mocksharedrepo "monorepo/services/payment/pkg/mocks/shared/repository"
@@ -66,7 +66,7 @@ func Test_CreateMethod(t *testing.T) {
 			uc, methods, _ := setup()
 			r := req
 			_, err := uc.CreateMethod(ctx, &r)
-			assert.Equal(t, 400, helper.HTTPStatus(err))
+			assert.Equal(t, 400, rest.HTTPStatus(err))
 			methods.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
 		})
 	}
@@ -75,7 +75,7 @@ func Test_CreateMethod(t *testing.T) {
 		uc, _, gateways := setup()
 		gateways.On("FindByCode", mock.Anything, "ghost").Return(shareddomain.Gateway{}, gorm.ErrRecordNotFound)
 		_, err := uc.CreateMethod(ctx, &domain.RequestSaveMethod{Code: "abc", Name: "x", Type: "qris", GatewayCode: "ghost", GatewayChannel: "q"})
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 	})
 }
 
@@ -94,7 +94,7 @@ func Test_MethodStatusAndDelete(t *testing.T) {
 	assert.False(t, saved.IsEnabled)
 
 	_, err = uc.SetMethodStatus(ctx, 404, true)
-	assert.Equal(t, 404, helper.HTTPStatus(err))
+	assert.Equal(t, 404, rest.HTTPStatus(err))
 	assert.NoError(t, uc.DeleteMethod(ctx, 1))
-	assert.Equal(t, 404, helper.HTTPStatus(uc.DeleteMethod(ctx, 404)))
+	assert.Equal(t, 404, rest.HTTPStatus(uc.DeleteMethod(ctx, 404)))
 }

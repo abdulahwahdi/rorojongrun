@@ -5,9 +5,9 @@ import (
 	"errors"
 	"strings"
 
+	"monorepo/globalshared/rest"
 	"monorepo/sdk/notification"
 	"monorepo/services/user/internal/modules/auth/domain"
-	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
 	"monorepo/services/user/pkg/shared/usecase/common"
 
@@ -29,16 +29,16 @@ func (uc *authUsecaseImpl) RequestOTP(ctx context.Context, realmName string, req
 		return err
 	}
 	if !realm.Enabled || !realm.OTPLoginEnabled {
-		return helper.NewForbidden("otp login is not enabled for this realm")
+		return rest.NewForbidden("otp login is not enabled for this realm")
 	}
 	client, err := uc.repoSQL.ClientRepo().FindByClientID(ctx, realm.ID, req.ClientID)
 	if err != nil || !client.Enabled || client.Type == shareddomain.ClientTypeConfidential || !grantAllowed(client, domain.GrantOTP) {
 		// confidential clients must present their secret, so they cannot start an unauthenticated OTP flow
-		return helper.NewUnauthorized("invalid client")
+		return rest.NewUnauthorized("invalid client")
 	}
 	notifier := uc.notification()
 	if notifier == nil {
-		return helper.NewInvalid("otp login is not configured")
+		return rest.NewInvalid("otp login is not configured")
 	}
 
 	email := strings.ToLower(strings.TrimSpace(req.Email))

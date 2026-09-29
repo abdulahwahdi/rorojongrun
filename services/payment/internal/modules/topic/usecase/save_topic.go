@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/topic/domain"
 	"monorepo/services/payment/pkg/helper"
 	"monorepo/services/payment/pkg/shared"
@@ -24,25 +25,25 @@ var publishEventTypes = []string{
 
 func (uc *topicUsecaseImpl) validate(ctx context.Context, req *domain.RequestSaveTopic) error {
 	if !topicNameRe.MatchString(req.Topic) {
-		return helper.NewInvalid("topic may only contain letters, digits, '.', '_' and '-'")
+		return rest.NewInvalid("topic may only contain letters, digits, '.', '_' and '-'")
 	}
 	switch req.Direction {
 	case shareddomain.TopicConsume:
 		if req.GatewayCode == "" || req.EventType != "" {
-			return helper.NewInvalid("a consume topic needs gatewayCode and no eventType")
+			return rest.NewInvalid("a consume topic needs gatewayCode and no eventType")
 		}
 		if _, err := uc.repoSQL.GatewayRepo().FindByCode(ctx, req.GatewayCode); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return helper.NewInvalid("unknown gateway " + req.GatewayCode)
+				return rest.NewInvalid("unknown gateway " + req.GatewayCode)
 			}
 			return err
 		}
 	case shareddomain.TopicPublish:
 		if req.GatewayCode != "" || !slices.Contains(publishEventTypes, req.EventType) {
-			return helper.NewInvalid("a publish topic needs an eventType (one of " + joinComma(publishEventTypes) + ") and no gatewayCode")
+			return rest.NewInvalid("a publish topic needs an eventType (one of " + joinComma(publishEventTypes) + ") and no gatewayCode")
 		}
 	default:
-		return helper.NewInvalid("direction must be consume or publish")
+		return rest.NewInvalid("direction must be consume or publish")
 	}
 	return nil
 }
@@ -71,7 +72,7 @@ func (uc *topicUsecaseImpl) CreateTopic(ctx context.Context, req *domain.Request
 	}
 	apply(&data, req)
 	if err = uc.repoSQL.TopicRepo().Save(ctx, &data); err != nil {
-		return shareddomain.Topic{}, helper.MapDBError(err)
+		return shareddomain.Topic{}, rest.MapDBError(err)
 	}
 	shared.NotifyTopicsChanged()
 	return data, nil
@@ -89,7 +90,7 @@ func (uc *topicUsecaseImpl) UpdateTopic(ctx context.Context, id int, req *domain
 	}
 	apply(&data, req)
 	if err = uc.repoSQL.TopicRepo().Save(ctx, &data); err != nil {
-		return shareddomain.Topic{}, helper.MapDBError(err)
+		return shareddomain.Topic{}, rest.MapDBError(err)
 	}
 	shared.NotifyTopicsChanged()
 	return data, nil

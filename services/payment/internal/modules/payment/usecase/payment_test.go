@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/gateway/provider"
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/stretchr/testify/assert"
@@ -27,7 +27,7 @@ func eventOf(t *testing.T, o shareddomain.Outbox) domain.PaymentEvent {
 }
 
 func appErrStatus(err error) int {
-	var app *helper.AppError
+	var app *rest.AppError
 	if errors.As(err, &app) {
 		return app.Status
 	}

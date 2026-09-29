@@ -1,8 +1,6 @@
 package helper
 
 import (
-	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -41,16 +39,6 @@ func Test_Crypto(t *testing.T) {
 	})
 }
 
-func Test_Errors(t *testing.T) {
-	cases := map[int]error{404: NewNotFound("x"), 409: NewConflict("x"), 400: NewInvalid("x"), 403: NewForbidden("x"), 401: NewUnauthorized("x"), 423: NewLocked("x")}
-	for status, err := range cases {
-		assert.Equal(t, status, HTTPStatus(err))
-		assert.Equal(t, status, HTTPStatus(fmt.Errorf("wrapped: %w", err)), "survives wrapping")
-	}
-	assert.Equal(t, 500, HTTPStatus(errors.New("boom")))
-	assert.Equal(t, "x", NewInvalid("x").Error())
-}
-
 func Test_PermissionAllows(t *testing.T) {
 	g := [][2]string{{"order", "cancel"}, {"user", "*"}}
 	assert.True(t, PermissionAllows(g, "order", "cancel"))
@@ -63,8 +51,7 @@ func Test_PermissionAllows(t *testing.T) {
 	assert.False(t, PermissionAllows(nil, "x", "y"))
 }
 
-func Test_Like_and_StrPtr(t *testing.T) {
-	assert.Equal(t, `%50\%\_off%`, Like("50%_off"), "wildcards in user input are escaped")
+func Test_StrPtr(t *testing.T) {
 	assert.Nil(t, StrPtr(""))
 	assert.Equal(t, "a", *StrPtr("a"))
 	assert.Equal(t, "", StrVal(nil))

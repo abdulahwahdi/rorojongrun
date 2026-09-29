@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/menu/domain"
-	"monorepo/services/user/pkg/helper"
 	mockclient "monorepo/services/user/pkg/mocks/modules/client/repository"
 	mockmenu "monorepo/services/user/pkg/mocks/modules/menu/repository"
 	mockrbac "monorepo/services/user/pkg/mocks/modules/rbac/repository"
@@ -101,7 +101,7 @@ func Test_CreateMenu(t *testing.T) {
 		h := newMenuHarness(t)
 		h.menus.On("FindByKey", mock.Anything, 7, "orders").Return(shareddomain.Menu{ID: 3}, nil)
 		_, err := h.uc.CreateMenu(adminCtx(), "acme", "web", &domain.RequestMenu{Key: "orders", Label: "Orders"})
-		assert.Equal(t, 409, helper.HTTPStatus(err))
+		assert.Equal(t, 409, rest.HTTPStatus(err))
 	})
 
 	t.Run("parent must belong to the client", func(t *testing.T) {
@@ -109,7 +109,7 @@ func Test_CreateMenu(t *testing.T) {
 		h.menus.On("FindByKey", mock.Anything, 7, "orders").Return(shareddomain.Menu{}, errNF)
 		h.menus.On("Find", mock.Anything, 7, 99).Return(shareddomain.Menu{}, errNF)
 		_, err := h.uc.CreateMenu(adminCtx(), "acme", "web", &domain.RequestMenu{Key: "orders", Label: "Orders", ParentID: ip(99)})
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 		h.menus.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
 	})
 
@@ -118,13 +118,13 @@ func Test_CreateMenu(t *testing.T) {
 		h.menus.On("FindByKey", mock.Anything, 7, "orders").Return(shareddomain.Menu{}, errNF)
 		h.perms.On("Find", mock.Anything, 1, 5).Return(shareddomain.Permission{}, errNF)
 		_, err := h.uc.CreateMenu(adminCtx(), "acme", "web", &domain.RequestMenu{Key: "orders", Label: "Orders", PermissionID: ip(5)})
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 	})
 
 	t.Run("a token of another realm cannot touch it", func(t *testing.T) {
 		h := newMenuHarness(t)
 		_, err := h.uc.CreateMenu(claimFor("globex"), "acme", "web", &domain.RequestMenu{Key: "x", Label: "x"})
-		assert.Equal(t, 403, helper.HTTPStatus(err))
+		assert.Equal(t, 403, rest.HTTPStatus(err))
 	})
 }
 
@@ -138,10 +138,10 @@ func Test_UpdateMenu_cycle(t *testing.T) {
 
 	// moving 1 under its own grandchild 3
 	err := h.uc.UpdateMenu(adminCtx(), "acme", "web", 1, &domain.RequestMenu{Key: "root", Label: "root", ParentID: ip(3)})
-	assert.Equal(t, 400, helper.HTTPStatus(err))
+	assert.Equal(t, 400, rest.HTTPStatus(err))
 	// or under itself
 	err = h.uc.UpdateMenu(adminCtx(), "acme", "web", 1, &domain.RequestMenu{Key: "root", Label: "root", ParentID: ip(1)})
-	assert.Equal(t, 400, helper.HTTPStatus(err))
+	assert.Equal(t, 400, rest.HTTPStatus(err))
 	h.menus.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
 }
 

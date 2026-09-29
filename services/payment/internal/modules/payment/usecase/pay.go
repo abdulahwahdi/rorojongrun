@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"strings"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/gateway/provider"
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/logger"
@@ -37,7 +37,7 @@ func (uc *paymentUsecaseImpl) Pay(ctx context.Context, token, methodCode string)
 		code = p.MethodCode
 	}
 	if code == "" {
-		return res, helper.NewInvalid("select a payment method first")
+		return res, rest.NewInvalid("select a payment method first")
 	}
 	method, err := uc.usableMethod(ctx, &p, code)
 	if err != nil {
@@ -62,7 +62,7 @@ func (uc *paymentUsecaseImpl) Pay(ctx context.Context, token, methodCode string)
 		}
 		if prov, cfg, err = uc.providers(row, true); err != nil {
 			logger.LogE("payment: gateway " + gw + " unusable: " + err.Error())
-			return res, helper.NewUnavailable("this payment method is temporarily unavailable")
+			return res, rest.NewUnavailable("this payment method is temporarily unavailable")
 		}
 	}
 
@@ -82,7 +82,7 @@ func (uc *paymentUsecaseImpl) Pay(ctx context.Context, token, methodCode string)
 			return err
 		}
 		if !uc.now().Before(cur.ExpiresAt) {
-			return helper.NewConflict("payment link expired")
+			return rest.NewConflict("payment link expired")
 		}
 		open, hasOpen := uc.openTransaction(ctx, cur.ID)
 		if hasOpen && open.MethodCode == code {
@@ -129,7 +129,7 @@ func (uc *paymentUsecaseImpl) Pay(ctx context.Context, token, methodCode string)
 		return nil
 	})
 	if err != nil {
-		return res, helper.MapDBError(err)
+		return res, rest.MapDBError(err)
 	}
 	uc.cancelAtGateway(ctx, dropped...)
 	uc.afterCommit()
@@ -144,7 +144,7 @@ func (uc *paymentUsecaseImpl) Pay(ctx context.Context, token, methodCode string)
 		if ferr := uc.failAttempt(ctx, p.ID, txn.ID, truncateReason(cerr.Error()), charge.Raw); ferr != nil {
 			logger.LogE("payment: cannot record failed attempt " + txn.ID + ": " + ferr.Error())
 		}
-		return res, helper.NewBadGateway("the payment gateway could not create this payment, please retry or choose another method")
+		return res, rest.NewBadGateway("the payment gateway could not create this payment, please retry or choose another method")
 	}
 
 	// step 3: keep the instruction and tell the customer
@@ -178,7 +178,7 @@ func (uc *paymentUsecaseImpl) Pay(ctx context.Context, token, methodCode string)
 	}
 	if lateCancel != nil {
 		uc.cancelAtGateway(ctx, *lateCancel)
-		return res, helper.NewConflict("this checkout attempt was replaced, please retry")
+		return res, rest.NewConflict("this checkout attempt was replaced, please retry")
 	}
 	uc.afterCommit()
 	return uc.checkoutView(ctx, &p)

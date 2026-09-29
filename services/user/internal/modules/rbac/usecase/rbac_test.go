@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/rbac/domain"
-	"monorepo/services/user/pkg/helper"
 	mockrbac "monorepo/services/user/pkg/mocks/modules/rbac/repository"
 	mockrealm "monorepo/services/user/pkg/mocks/modules/realm/repository"
 	mocksharedrepo "monorepo/services/user/pkg/mocks/shared/repository"
@@ -53,7 +53,7 @@ func Test_Roles(t *testing.T) {
 		h := newHarness(t)
 		h.roles.On("FindByName", mock.Anything, 1, "ops").Return(shareddomain.Role{ID: 9}, nil)
 		_, err := h.uc.CreateRole(ctx, "acme", &domain.RequestRole{Name: "ops"})
-		assert.Equal(t, 409, helper.HTTPStatus(err))
+		assert.Equal(t, 409, rest.HTTPStatus(err))
 	})
 
 	t.Run("create", func(t *testing.T) {
@@ -71,7 +71,7 @@ func Test_Roles(t *testing.T) {
 		h.roles.On("FindByName", mock.Anything, 1, "other").Return(shareddomain.Role{ID: 6}, nil)
 		h.roles.On("FindByName", mock.Anything, 1, "ops").Return(shareddomain.Role{ID: 5}, nil)
 		h.roles.On("Save", mock.Anything, mock.Anything).Return(nil)
-		assert.Equal(t, 409, helper.HTTPStatus(h.uc.UpdateRole(ctx, "acme", 5, &domain.RequestRole{Name: "other"})))
+		assert.Equal(t, 409, rest.HTTPStatus(h.uc.UpdateRole(ctx, "acme", 5, &domain.RequestRole{Name: "other"})))
 		assert.NoError(t, h.uc.UpdateRole(ctx, "acme", 5, &domain.RequestRole{Name: "ops", Description: "new"}))
 	})
 
@@ -79,7 +79,7 @@ func Test_Roles(t *testing.T) {
 		h := newHarness(t)
 		h.roles.On("Find", mock.Anything, 1, 5).Return(shareddomain.Role{ID: 5}, nil)
 		h.roles.On("CountUsers", mock.Anything, 5).Return(2)
-		assert.Equal(t, 409, helper.HTTPStatus(h.uc.DeleteRole(ctx, "acme", 5, false)))
+		assert.Equal(t, 409, rest.HTTPStatus(h.uc.DeleteRole(ctx, "acme", 5, false)))
 		h.roles.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 
 		h.roles.On("Delete", mock.Anything, 5).Return(nil)
@@ -103,7 +103,7 @@ func Test_Roles(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, res.Permissions, 1)
 		_, err = h.uc.GetDetailRole(ctx, "acme", 6)
-		assert.Equal(t, 404, helper.HTTPStatus(err))
+		assert.Equal(t, 404, rest.HTTPStatus(err))
 	})
 }
 
@@ -117,14 +117,14 @@ func Test_RolePermissions(t *testing.T) {
 	h.roles.On("ReplacePermissions", mock.Anything, 5, []int{1, 2}).Return(nil)
 	assert.NoError(t, h.uc.ReplaceRolePermissions(ctx, "acme", 5, []int{1, 2, 2}))
 	h.perms.On("CountByIDs", mock.Anything, 1, []int{1, 999}).Return(1)
-	assert.Equal(t, 400, helper.HTTPStatus(h.uc.ReplaceRolePermissions(ctx, "acme", 5, []int{1, 999})))
+	assert.Equal(t, 400, rest.HTTPStatus(h.uc.ReplaceRolePermissions(ctx, "acme", 5, []int{1, 999})))
 
 	// add: the permission must be of this realm
 	h.perms.On("Find", mock.Anything, 1, 1).Return(shareddomain.Permission{ID: 1}, nil)
 	h.perms.On("Find", mock.Anything, 1, 999).Return(shareddomain.Permission{}, errNF)
 	h.roles.On("AddPermission", mock.Anything, 5, 1).Return(nil)
 	assert.NoError(t, h.uc.AddRolePermission(ctx, "acme", 5, 1))
-	assert.Equal(t, 404, helper.HTTPStatus(h.uc.AddRolePermission(ctx, "acme", 5, 999)))
+	assert.Equal(t, 404, rest.HTTPStatus(h.uc.AddRolePermission(ctx, "acme", 5, 999)))
 
 	h.roles.On("RemovePermission", mock.Anything, 5, 1).Return(nil)
 	assert.NoError(t, h.uc.RemoveRolePermission(ctx, "acme", 5, 1))
@@ -143,7 +143,7 @@ func Test_Permissions(t *testing.T) {
 		h = newHarness(t)
 		h.perms.On("FindByServiceCode", mock.Anything, 1, "order", "cancel").Return(shareddomain.Permission{ID: 3}, nil)
 		_, err = h.uc.CreatePermission(ctx, "acme", &domain.RequestPermission{Service: "order", Code: "cancel"})
-		assert.Equal(t, 409, helper.HTTPStatus(err))
+		assert.Equal(t, 409, rest.HTTPStatus(err))
 	})
 
 	t.Run("bulk upsert updates existing and creates new", func(t *testing.T) {
@@ -171,7 +171,7 @@ func Test_Permissions(t *testing.T) {
 	t.Run("another realm's admin is refused", func(t *testing.T) {
 		h := newHarness(t)
 		_, err := h.uc.GetAllPermission(ctxOf("globex"), "acme", &domain.FilterPermission{})
-		assert.Equal(t, 403, helper.HTTPStatus(err))
+		assert.Equal(t, 403, rest.HTTPStatus(err))
 		h.perms.On("FetchAll", mock.Anything, 1, mock.Anything).Return([]shareddomain.Permission{}, nil)
 		h.perms.On("Count", mock.Anything, 1, mock.Anything).Return(0)
 		_, err = h.uc.GetAllPermission(ctxOf(common.MasterRealm), "acme", &domain.FilterPermission{})

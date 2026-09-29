@@ -3,8 +3,8 @@ package resthandler
 import (
 	"net/http"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/gateway/domain"
-	"monorepo/services/payment/pkg/helper"
 	"monorepo/services/payment/pkg/shared/usecase"
 
 	restserver "github.com/golangid/candi/codebase/app/rest_server"
@@ -27,10 +27,10 @@ func NewRestHandler(uc usecase.Usecase, deps dependency.Dependency) *RestHandler
 
 // Mount handler with root "/". Routes are registered flat, see the user service for why.
 func (h *RestHandler) Mount(root interfaces.RESTRouter) {
-	root.GET("/v1/gateways", h.getAll, helper.Secure(h.mw, "manageGateways")...)
-	root.GET("/v1/gateways/:code", h.get, helper.Secure(h.mw, "manageGateways")...)
-	root.PUT("/v1/gateways/:code", h.update, helper.Secure(h.mw, "manageGateways")...)
-	root.PATCH("/v1/gateways/:code/status", h.setStatus, helper.Secure(h.mw, "manageGateways")...)
+	root.GET("/v1/gateways", h.getAll, rest.Secure(h.mw, "manageGateways")...)
+	root.GET("/v1/gateways/:code", h.get, rest.Secure(h.mw, "manageGateways")...)
+	root.PUT("/v1/gateways/:code", h.update, rest.Secure(h.mw, "manageGateways")...)
+	root.PATCH("/v1/gateways/:code/status", h.setStatus, rest.Secure(h.mw, "manageGateways")...)
 }
 
 func (h *RestHandler) getAll(rw http.ResponseWriter, req *http.Request) {
@@ -39,10 +39,10 @@ func (h *RestHandler) getAll(rw http.ResponseWriter, req *http.Request) {
 
 	data, err := h.uc.Gateway().GetAllGateways(ctx)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 func (h *RestHandler) get(rw http.ResponseWriter, req *http.Request) {
@@ -51,10 +51,10 @@ func (h *RestHandler) get(rw http.ResponseWriter, req *http.Request) {
 
 	data, err := h.uc.Gateway().GetGateway(ctx, restserver.URLParam(req, "code"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 func (h *RestHandler) update(rw http.ResponseWriter, req *http.Request) {
@@ -62,15 +62,15 @@ func (h *RestHandler) update(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestUpdateGateway
-	if !helper.DecodeBody(rw, req, h.validator, "gateway/save", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "gateway/save", &payload) {
 		return
 	}
 	data, err := h.uc.Gateway().UpdateGateway(ctx, restserver.URLParam(req, "code"), &payload)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 func (h *RestHandler) setStatus(rw http.ResponseWriter, req *http.Request) {
@@ -78,13 +78,13 @@ func (h *RestHandler) setStatus(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestSetStatus
-	if !helper.DecodeBody(rw, req, h.validator, "gateway/status", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "gateway/status", &payload) {
 		return
 	}
 	data, err := h.uc.Gateway().SetGatewayStatus(ctx, restserver.URLParam(req, "code"), payload.IsEnabled)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }

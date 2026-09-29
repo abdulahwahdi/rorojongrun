@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"monorepo/globalshared/auth"
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/auth/domain"
-	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
 	"monorepo/services/user/pkg/shared/usecase/common"
 
@@ -95,10 +95,10 @@ func (uc *authUsecaseImpl) RevokeUserSessions(ctx context.Context, realm string,
 func (uc *authUsecaseImpl) authenticate(ctx context.Context, realm string) (shareddomain.Realm, shareddomain.User, *candishared.TokenClaim, error) {
 	claim := auth.TokenClaimFromContext(ctx)
 	if claim == nil {
-		return shareddomain.Realm{}, shareddomain.User{}, nil, helper.NewUnauthorized("missing token")
+		return shareddomain.Realm{}, shareddomain.User{}, nil, rest.NewUnauthorized("missing token")
 	}
 	if auth.RealmFromClaim(claim) != realm {
-		return shareddomain.Realm{}, shareddomain.User{}, nil, helper.NewForbidden("token was not issued by realm " + realm)
+		return shareddomain.Realm{}, shareddomain.User{}, nil, rest.NewForbidden("token was not issued by realm " + realm)
 	}
 	r, err := common.LoadRealm(ctx, uc.repoSQL, realm)
 	if err != nil {
@@ -106,11 +106,11 @@ func (uc *authUsecaseImpl) authenticate(ctx context.Context, realm string) (shar
 	}
 	var userID int
 	if err := scanInt(claim.Subject, &userID); err != nil {
-		return r, shareddomain.User{}, nil, helper.NewUnauthorized("invalid token subject")
+		return r, shareddomain.User{}, nil, rest.NewUnauthorized("invalid token subject")
 	}
 	user, err := uc.repoSQL.UserRepo().Find(ctx, r.ID, userID)
 	if err != nil || user.Status == shareddomain.UserStatusDisabled {
-		return r, user, nil, helper.NewUnauthorized("account not available")
+		return r, user, nil, rest.NewUnauthorized("account not available")
 	}
 	if sid := auth.SessionIDFromClaim(claim); sid > 0 {
 		active, err := uc.repoSQL.SessionRepo().IsFamilyActive(ctx, sid)
@@ -118,7 +118,7 @@ func (uc *authUsecaseImpl) authenticate(ctx context.Context, realm string) (shar
 			return r, user, nil, err
 		}
 		if !active {
-			return r, user, nil, helper.NewUnauthorized("session was revoked")
+			return r, user, nil, rest.NewUnauthorized("session was revoked")
 		}
 	}
 	return r, user, claim, nil
@@ -146,7 +146,7 @@ func (uc *authUsecaseImpl) RevokeMySession(ctx context.Context, realm string, id
 	}
 	session, err := uc.repoSQL.SessionRepo().Find(ctx, r.ID, id)
 	if err != nil || session.UserID != user.ID {
-		return helper.NewNotFound("session not found")
+		return rest.NewNotFound("session not found")
 	}
 	return uc.repoSQL.SessionRepo().RevokeFamily(ctx, session.FamilyID)
 }
@@ -157,10 +157,10 @@ func (uc *authUsecaseImpl) Logout(ctx context.Context, realm string) (err error)
 
 	claim := auth.TokenClaimFromContext(ctx)
 	if claim == nil {
-		return helper.NewUnauthorized("missing token")
+		return rest.NewUnauthorized("missing token")
 	}
 	if auth.RealmFromClaim(claim) != realm {
-		return helper.NewForbidden("token was not issued by realm " + realm)
+		return rest.NewForbidden("token was not issued by realm " + realm)
 	}
 	sid := auth.SessionIDFromClaim(claim)
 	if sid == 0 {

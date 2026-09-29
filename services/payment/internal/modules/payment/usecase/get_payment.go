@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/candishared"
@@ -18,7 +18,7 @@ func (uc *paymentUsecaseImpl) GetPayment(ctx context.Context, id string) (res do
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
 	if !isValidUUID(id) {
-		return res, helper.NewNotFound("payment not found")
+		return res, rest.NewNotFound("payment not found")
 	}
 	p, err := uc.loadPayment(ctx, id)
 	if err != nil {
@@ -54,7 +54,7 @@ func (uc *paymentUsecaseImpl) GetAllPayments(ctx context.Context, filter *domain
 func (uc *paymentUsecaseImpl) loadPayment(ctx context.Context, id string) (shareddomain.Payment, error) {
 	p, err := uc.repoSQL.PaymentRepo().FindPaymentByID(ctx, id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return p, helper.NewNotFound("payment not found")
+		return p, rest.NewNotFound("payment not found")
 	}
 	if err != nil {
 		return p, err
@@ -65,7 +65,7 @@ func (uc *paymentUsecaseImpl) loadPayment(ctx context.Context, id string) (share
 func (uc *paymentUsecaseImpl) paymentByToken(ctx context.Context, token string) (shareddomain.Payment, error) {
 	p, err := uc.repoSQL.PaymentRepo().FindPaymentByToken(ctx, token)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return p, helper.NewNotFound("payment not found")
+		return p, rest.NewNotFound("payment not found")
 	}
 	if err != nil {
 		return p, err

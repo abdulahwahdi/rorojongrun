@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/topic/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/candishared"
@@ -34,7 +34,7 @@ func (uc *topicUsecaseImpl) GetTopic(ctx context.Context, id int) (data shareddo
 
 	data, err = uc.repoSQL.TopicRepo().FindByID(ctx, id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return data, helper.NewNotFound("topic not found")
+		return data, rest.NewNotFound("topic not found")
 	}
 	return data, err
 }

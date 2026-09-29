@@ -1,25 +1,10 @@
 package helper
 
 import (
-	"context"
 	"time"
 
-	"monorepo/globalshared"
-
-	"github.com/golangid/candi/candishared"
 	"gorm.io/gorm"
 )
-
-// DB returns the transaction stored in ctx by RepoSQL.WithTransaction, falling back to db,
-// and attaches the tracing span. Reads inside a transaction use the transaction too.
-// The result is a session: every statement chained from it starts from a clean copy, so the
-// same value can be reused for several statements without conditions leaking between them.
-func DB(ctx context.Context, db *gorm.DB) *gorm.DB {
-	if tx, ok := candishared.GetValueFromContext(ctx, candishared.ContextKeySQLTransaction).(*gorm.DB); ok {
-		db = tx
-	}
-	return globalshared.SetSpanToGorm(ctx, db).Session(&gorm.Session{})
-}
 
 // Alive scopes a query to rows that are not soft deleted
 func Alive(db *gorm.DB, table string) *gorm.DB {

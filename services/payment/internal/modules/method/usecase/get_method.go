@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"monorepo/services/payment/pkg/helper"
+	"monorepo/globalshared/rest"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/tracer"
@@ -17,7 +17,7 @@ func (uc *methodUsecaseImpl) GetMethod(ctx context.Context, id int) (data shared
 
 	data, err = uc.repoSQL.MethodRepo().FindByID(ctx, id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return data, helper.NewNotFound("payment method not found")
+		return data, rest.NewNotFound("payment method not found")
 	}
 	return data, err
 }

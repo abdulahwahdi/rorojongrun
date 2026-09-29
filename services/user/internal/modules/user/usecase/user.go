@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/user/domain"
 	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -71,7 +72,7 @@ func (uc *userUsecaseImpl) checkUnique(ctx context.Context, realmID, selfID int,
 	repo := uc.repoSQL.UserRepo()
 	check := func(what string, u shareddomain.User, err error) error {
 		if err == nil && u.ID != selfID {
-			return helper.NewConflict(what + " is already used by another user of this realm")
+			return rest.NewConflict(what + " is already used by another user of this realm")
 		}
 		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
@@ -106,13 +107,13 @@ func (uc *userUsecaseImpl) CreateUser(ctx context.Context, realm string, req *do
 		return res, err
 	}
 	if len(req.Password) < minPasswordLength {
-		return res, helper.NewInvalid("password must be at least 8 characters")
+		return res, rest.NewInvalid("password must be at least 8 characters")
 	}
 	if req.Status == "" {
 		req.Status = shareddomain.UserStatusActive
 	}
 	if !validStatus(req.Status) {
-		return res, helper.NewInvalid("status must be active or disabled")
+		return res, rest.NewInvalid("status must be active or disabled")
 	}
 	username, email, phone := normalize(req.Username), normalize(req.Email), strings.TrimSpace(req.Phone)
 	if err = uc.checkUnique(ctx, r.ID, 0, username, email, phone); err != nil {
@@ -120,7 +121,7 @@ func (uc *userUsecaseImpl) CreateUser(ctx context.Context, realm string, req *do
 	}
 	roleIDs := uniqueInts(req.RoleIDs)
 	if len(roleIDs) > 0 && uc.repoSQL.UserRepo().CountRolesByIDs(ctx, r.ID, roleIDs) != len(roleIDs) {
-		return res, helper.NewInvalid("one or more roles do not exist in realm " + realm)
+		return res, rest.NewInvalid("one or more roles do not exist in realm " + realm)
 	}
 	hash, err := helper.HashSecret(req.Password)
 	if err != nil {
@@ -156,13 +157,13 @@ func (uc *userUsecaseImpl) UpdateUser(ctx context.Context, realm string, id int,
 		return common.NotFound(err, "user")
 	}
 	if user.IsServiceAccount {
-		return helper.NewConflict("service accounts are managed through their client")
+		return rest.NewConflict("service accounts are managed through their client")
 	}
 	if req.Status == "" {
 		req.Status = user.Status
 	}
 	if !validStatus(req.Status) {
-		return helper.NewInvalid("status must be active or disabled")
+		return rest.NewInvalid("status must be active or disabled")
 	}
 	username, email, phone := normalize(req.Username), normalize(req.Email), strings.TrimSpace(req.Phone)
 	if err = uc.checkUnique(ctx, r.ID, user.ID, username, email, phone); err != nil {
@@ -198,7 +199,7 @@ func (uc *userUsecaseImpl) DeleteUser(ctx context.Context, realm string, id int)
 		return common.NotFound(err, "user")
 	}
 	if user.IsServiceAccount {
-		return helper.NewConflict("service accounts are deleted together with their client")
+		return rest.NewConflict("service accounts are deleted together with their client")
 	}
 	return uc.repoSQL.WithTransaction(ctx, func(ctx context.Context) error {
 		if err := uc.repoSQL.SessionRepo().RevokeByUser(ctx, user.ID); err != nil {
@@ -217,14 +218,14 @@ func (uc *userUsecaseImpl) SetPassword(ctx context.Context, realm string, id int
 		return err
 	}
 	if len(password) < minPasswordLength {
-		return helper.NewInvalid("password must be at least 8 characters")
+		return rest.NewInvalid("password must be at least 8 characters")
 	}
 	user, err := uc.repoSQL.UserRepo().Find(ctx, r.ID, id)
 	if err != nil {
 		return common.NotFound(err, "user")
 	}
 	if user.IsServiceAccount {
-		return helper.NewConflict("service accounts authenticate with their client secret")
+		return rest.NewConflict("service accounts authenticate with their client secret")
 	}
 	if user.PasswordHash, err = helper.HashSecret(password); err != nil {
 		return err

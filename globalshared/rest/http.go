@@ -1,4 +1,4 @@
-package helper
+package rest
 
 import (
 	"encoding/json"

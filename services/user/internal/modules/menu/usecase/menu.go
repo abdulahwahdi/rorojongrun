@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/menu/domain"
 	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -107,10 +108,10 @@ func (uc *menuUsecaseImpl) GetDetailMenu(ctx context.Context, realm, clientID st
 func (uc *menuUsecaseImpl) validate(ctx context.Context, realmID int, client shareddomain.Client, selfID int, req *domain.RequestMenu) error {
 	if req.ParentID != nil {
 		if *req.ParentID == selfID && selfID != 0 {
-			return helper.NewInvalid("a menu cannot be its own parent")
+			return rest.NewInvalid("a menu cannot be its own parent")
 		}
 		if _, err := uc.repoSQL.MenuRepo().Find(ctx, client.ID, *req.ParentID); err != nil {
-			return helper.NewInvalid("parent menu not found in this client")
+			return rest.NewInvalid("parent menu not found in this client")
 		}
 		if selfID != 0 { // moving under a descendant would create a cycle
 			all, err := uc.repoSQL.MenuRepo().FetchAllOfClient(ctx, client.ID)
@@ -119,14 +120,14 @@ func (uc *menuUsecaseImpl) validate(ctx context.Context, realmID int, client sha
 			}
 			for _, id := range descendantIDs(all, selfID) {
 				if id == *req.ParentID {
-					return helper.NewInvalid("a menu cannot be moved under its own descendant")
+					return rest.NewInvalid("a menu cannot be moved under its own descendant")
 				}
 			}
 		}
 	}
 	if req.PermissionID != nil {
 		if _, err := uc.repoSQL.PermissionRepo().Find(ctx, realmID, *req.PermissionID); err != nil {
-			return helper.NewInvalid("permission not found in this realm")
+			return rest.NewInvalid("permission not found in this realm")
 		}
 	}
 	return nil
@@ -141,7 +142,7 @@ func (uc *menuUsecaseImpl) CreateMenu(ctx context.Context, realm, clientID strin
 		return res, err
 	}
 	if _, err = uc.repoSQL.MenuRepo().FindByKey(ctx, client.ID, req.Key); err == nil {
-		return res, helper.NewConflict("menu key " + req.Key + " already exists for client " + clientID)
+		return res, rest.NewConflict("menu key " + req.Key + " already exists for client " + clientID)
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return res, err
 	}
@@ -176,7 +177,7 @@ func (uc *menuUsecaseImpl) UpdateMenu(ctx context.Context, realm, clientID strin
 		return common.NotFound(err, "menu")
 	}
 	if existing, findErr := uc.repoSQL.MenuRepo().FindByKey(ctx, client.ID, req.Key); findErr == nil && existing.ID != menu.ID {
-		return helper.NewConflict("menu key " + req.Key + " already exists for client " + clientID)
+		return rest.NewConflict("menu key " + req.Key + " already exists for client " + clientID)
 	}
 	if err = uc.validate(ctx, r.ID, client, menu.ID, req); err != nil {
 		return err

@@ -3,8 +3,8 @@ package resthandler
 import (
 	"net/http"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/user/domain"
-	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared/usecase"
 
 	"github.com/golangid/candi/candihelper"
@@ -33,18 +33,18 @@ func NewRestHandler(uc usecase.Usecase, deps dependency.Dependency) *RestHandler
 func (h *RestHandler) Mount(root interfaces.RESTRouter) {
 	base := candihelper.V1 + "/realms/:realm/users"
 
-	root.GET(base, h.getAllUser, helper.Secure(h.mw, "getAllUser")...)
-	root.POST(base, h.createUser, helper.Secure(h.mw, "createUser")...)
-	root.GET(base+"/:id", h.getDetailUser, helper.Secure(h.mw, "getDetailUser")...)
-	root.PUT(base+"/:id", h.updateUser, helper.Secure(h.mw, "updateUser")...)
-	root.DELETE(base+"/:id", h.deleteUser, helper.Secure(h.mw, "deleteUser")...)
-	root.PUT(base+"/:id/password", h.setPassword, helper.Secure(h.mw, "setUserPassword")...)
-	root.POST(base+"/:id/unlock", h.unlockUser, helper.Secure(h.mw, "unlockUser")...)
+	root.GET(base, h.getAllUser, rest.Secure(h.mw, "getAllUser")...)
+	root.POST(base, h.createUser, rest.Secure(h.mw, "createUser")...)
+	root.GET(base+"/:id", h.getDetailUser, rest.Secure(h.mw, "getDetailUser")...)
+	root.PUT(base+"/:id", h.updateUser, rest.Secure(h.mw, "updateUser")...)
+	root.DELETE(base+"/:id", h.deleteUser, rest.Secure(h.mw, "deleteUser")...)
+	root.PUT(base+"/:id/password", h.setPassword, rest.Secure(h.mw, "setUserPassword")...)
+	root.POST(base+"/:id/unlock", h.unlockUser, rest.Secure(h.mw, "unlockUser")...)
 
-	root.GET(base+"/:id/roles", h.getUserRoles, helper.Secure(h.mw, "getUserRoles")...)
-	root.POST(base+"/:id/roles", h.addUserRole, helper.Secure(h.mw, "addUserRole")...)
-	root.PUT(base+"/:id/roles", h.replaceUserRoles, helper.Secure(h.mw, "replaceUserRoles")...)
-	root.DELETE(base+"/:id/roles/:roleId", h.removeUserRole, helper.Secure(h.mw, "removeUserRole")...)
+	root.GET(base+"/:id/roles", h.getUserRoles, rest.Secure(h.mw, "getUserRoles")...)
+	root.POST(base+"/:id/roles", h.addUserRole, rest.Secure(h.mw, "addUserRole")...)
+	root.PUT(base+"/:id/roles", h.replaceUserRoles, rest.Secure(h.mw, "replaceUserRoles")...)
+	root.DELETE(base+"/:id/roles/:roleId", h.removeUserRole, rest.Secure(h.mw, "removeUserRole")...)
 }
 
 func realmParam(req *http.Request) string { return restserver.URLParam(req, "realm") }
@@ -61,12 +61,12 @@ func (h *RestHandler) getAllUser(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var filter domain.FilterUser
-	if !helper.ParseFilter(rw, req, h.validator, "user/get_all", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "user/get_all", &filter) {
 		return
 	}
 	result, err := h.uc.User().GetAllUser(ctx, realmParam(req), &filter)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	response := wrapper.NewHTTPResponse(http.StatusOK, "Success", result.Data)
@@ -86,12 +86,12 @@ func (h *RestHandler) getDetailUser(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "UserDeliveryREST:GetDetailUser")
 	defer trace.Finish()
 
-	data, err := h.uc.User().GetDetailUser(ctx, realmParam(req), helper.URLParamInt(req, "id"))
+	data, err := h.uc.User().GetDetailUser(ctx, realmParam(req), rest.URLParamInt(req, "id"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // createUser godoc
@@ -108,12 +108,12 @@ func (h *RestHandler) createUser(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestCreateUser
-	if !helper.DecodeBody(rw, req, h.validator, "user/create", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "user/create", &payload) {
 		return
 	}
 	res, err := h.uc.User().CreateUser(ctx, realmParam(req), &payload)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	wrapper.NewHTTPResponse(http.StatusCreated, "Success", res).JSON(rw)
@@ -133,14 +133,14 @@ func (h *RestHandler) updateUser(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestUpdateUser
-	if !helper.DecodeBody(rw, req, h.validator, "user/update", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "user/update", &payload) {
 		return
 	}
-	if err := h.uc.User().UpdateUser(ctx, realmParam(req), helper.URLParamInt(req, "id"), &payload); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.User().UpdateUser(ctx, realmParam(req), rest.URLParamInt(req, "id"), &payload); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // deleteUser godoc
@@ -154,11 +154,11 @@ func (h *RestHandler) deleteUser(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "UserDeliveryREST:DeleteUser")
 	defer trace.Finish()
 
-	if err := h.uc.User().DeleteUser(ctx, realmParam(req), helper.URLParamInt(req, "id")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.User().DeleteUser(ctx, realmParam(req), rest.URLParamInt(req, "id")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // setPassword godoc
@@ -175,14 +175,14 @@ func (h *RestHandler) setPassword(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestPassword
-	if !helper.DecodeBody(rw, req, h.validator, "user/password", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "user/password", &payload) {
 		return
 	}
-	if err := h.uc.User().SetPassword(ctx, realmParam(req), helper.URLParamInt(req, "id"), payload.Password); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.User().SetPassword(ctx, realmParam(req), rest.URLParamInt(req, "id"), payload.Password); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // unlockUser godoc
@@ -196,11 +196,11 @@ func (h *RestHandler) unlockUser(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "UserDeliveryREST:UnlockUser")
 	defer trace.Finish()
 
-	if err := h.uc.User().UnlockUser(ctx, realmParam(req), helper.URLParamInt(req, "id")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.User().UnlockUser(ctx, realmParam(req), rest.URLParamInt(req, "id")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // getUserRoles godoc
@@ -214,12 +214,12 @@ func (h *RestHandler) getUserRoles(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "UserDeliveryREST:GetUserRoles")
 	defer trace.Finish()
 
-	data, err := h.uc.User().GetUserRoles(ctx, realmParam(req), helper.URLParamInt(req, "id"))
+	data, err := h.uc.User().GetUserRoles(ctx, realmParam(req), rest.URLParamInt(req, "id"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // addUserRole godoc
@@ -236,14 +236,14 @@ func (h *RestHandler) addUserRole(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestRoleID
-	if !helper.DecodeBody(rw, req, h.validator, "user/add_role", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "user/add_role", &payload) {
 		return
 	}
-	if err := h.uc.User().AddUserRole(ctx, realmParam(req), helper.URLParamInt(req, "id"), payload.RoleID); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.User().AddUserRole(ctx, realmParam(req), rest.URLParamInt(req, "id"), payload.RoleID); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // replaceUserRoles godoc
@@ -260,14 +260,14 @@ func (h *RestHandler) replaceUserRoles(rw http.ResponseWriter, req *http.Request
 	defer trace.Finish()
 
 	var payload domain.RequestRoleIDs
-	if !helper.DecodeBody(rw, req, h.validator, "user/replace_roles", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "user/replace_roles", &payload) {
 		return
 	}
-	if err := h.uc.User().ReplaceUserRoles(ctx, realmParam(req), helper.URLParamInt(req, "id"), payload.RoleIDs); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.User().ReplaceUserRoles(ctx, realmParam(req), rest.URLParamInt(req, "id"), payload.RoleIDs); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // removeUserRole godoc
@@ -282,9 +282,9 @@ func (h *RestHandler) removeUserRole(rw http.ResponseWriter, req *http.Request) 
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "UserDeliveryREST:RemoveUserRole")
 	defer trace.Finish()
 
-	if err := h.uc.User().RemoveUserRole(ctx, realmParam(req), helper.URLParamInt(req, "id"), helper.URLParamInt(req, "roleId")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.User().RemoveUserRole(ctx, realmParam(req), rest.URLParamInt(req, "id"), rest.URLParamInt(req, "roleId")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }

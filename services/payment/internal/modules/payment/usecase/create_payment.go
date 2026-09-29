@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/tracer"
@@ -33,7 +33,7 @@ func (uc *paymentUsecaseImpl) CreatePayment(ctx context.Context, source string, 
 			}
 		} else {
 			if existing.Amount != req.Amount {
-				return res, helper.NewConflict("an open payment for this reference exists with a different amount")
+				return res, rest.NewConflict("an open payment for this reference exists with a different amount")
 			}
 			return uc.createResponse(&existing), nil
 		}
@@ -77,7 +77,7 @@ func (uc *paymentUsecaseImpl) CreatePayment(ctx context.Context, source string, 
 		if existing, ferr := repo.FindActivePaymentByRef(ctx, source, req.ReferenceID); ferr == nil {
 			return uc.createResponse(&existing), nil
 		}
-		return res, helper.MapDBError(err)
+		return res, rest.MapDBError(err)
 	}
 	uc.afterCommit()
 	return uc.createResponse(&p), nil
@@ -85,26 +85,26 @@ func (uc *paymentUsecaseImpl) CreatePayment(ctx context.Context, source string, 
 
 func validateCreate(source string, req *domain.RequestCreatePayment) error {
 	if source == "" {
-		return helper.NewInvalid("source is required")
+		return rest.NewInvalid("source is required")
 	}
 	if strings.TrimSpace(req.ReferenceID) == "" {
-		return helper.NewInvalid("referenceId is required")
+		return rest.NewInvalid("referenceId is required")
 	}
 	if req.Amount <= 0 {
-		return helper.NewInvalid("amount must be greater than zero")
+		return rest.NewInvalid("amount must be greater than zero")
 	}
 	if req.Currency != "" && req.Currency != "IDR" {
-		return helper.NewInvalid("only IDR is supported")
+		return rest.NewInvalid("only IDR is supported")
 	}
 	if e := req.Customer.Email; e != "" && !strings.Contains(e, "@") {
-		return helper.NewInvalid("customer.email is not a valid email address")
+		return rest.NewInvalid("customer.email is not a valid email address")
 	}
 	if req.ExpiresInSec != 0 && (req.ExpiresInSec < domain.MinExpirySec || req.ExpiresInSec > domain.MaxExpirySec) {
-		return helper.NewInvalid("expiresInSec must be between 60 and 2592000")
+		return rest.NewInvalid("expiresInSec must be between 60 and 2592000")
 	}
 	for _, it := range req.Items {
 		if it.Quantity <= 0 || it.Price < 0 {
-			return helper.NewInvalid("every item needs a positive quantity and a non-negative price")
+			return rest.NewInvalid("every item needs a positive quantity and a non-negative price")
 		}
 	}
 	return nil

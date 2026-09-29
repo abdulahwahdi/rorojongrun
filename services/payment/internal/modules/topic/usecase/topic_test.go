@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/topic/domain"
-	"monorepo/services/payment/pkg/helper"
 	mockgatewayrepo "monorepo/services/payment/pkg/mocks/modules/gateway/repository"
 	mocktopicrepo "monorepo/services/payment/pkg/mocks/modules/topic/repository"
 	mocksharedrepo "monorepo/services/payment/pkg/mocks/shared/repository"
@@ -85,7 +85,7 @@ func Test_CreateTopic(t *testing.T) {
 			gateways.On("FindByCode", mock.Anything, mock.Anything).Return(shareddomain.Gateway{Code: "midtrans"}, nil).Maybe()
 			r := req
 			_, err := uc.CreateTopic(ctx, &r)
-			assert.Equal(t, 400, helper.HTTPStatus(err))
+			assert.Equal(t, 400, rest.HTTPStatus(err))
 			topics.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
 			assert.False(t, signalled())
 		})
@@ -95,7 +95,7 @@ func Test_CreateTopic(t *testing.T) {
 		uc, _, gateways := setup()
 		gateways.On("FindByCode", mock.Anything, "ghost").Return(shareddomain.Gateway{}, gorm.ErrRecordNotFound)
 		_, err := uc.CreateTopic(ctx, &domain.RequestSaveTopic{Topic: "t", Direction: "consume", GatewayCode: "ghost"})
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 	})
 }
 
@@ -114,7 +114,7 @@ func Test_TopicStatusAndDelete(t *testing.T) {
 	assert.False(t, saved.IsEnabled)
 	assert.True(t, signalled(), "disabling a topic stops consuming it without a restart")
 
-	assert.Equal(t, 404, helper.HTTPStatus(func() error { _, err := uc.SetTopicStatus(ctx, 404, true); return err }()))
+	assert.Equal(t, 404, rest.HTTPStatus(func() error { _, err := uc.SetTopicStatus(ctx, 404, true); return err }()))
 
 	drainSignal()
 	require.NoError(t, uc.DeleteTopic(ctx, 1))

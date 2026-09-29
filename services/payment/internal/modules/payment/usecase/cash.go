@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/payment/domain"
 	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
@@ -28,7 +29,7 @@ func (uc *paymentUsecaseImpl) GetCashPayment(ctx context.Context, cashCode strin
 
 	txn, err := uc.repoSQL.PaymentRepo().FindTransactionByCashCode(ctx, strings.ToUpper(strings.TrimSpace(cashCode)))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return res, helper.NewNotFound("cash code not found")
+		return res, rest.NewNotFound("cash code not found")
 	}
 	if err != nil {
 		return res, err
@@ -50,7 +51,7 @@ func (uc *paymentUsecaseImpl) ConfirmCashPayment(ctx context.Context, cashCode, 
 	repo := uc.repoSQL.PaymentRepo()
 	found, err := repo.FindTransactionByCashCode(ctx, cashCode)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return res, helper.NewNotFound("cash code not found")
+		return res, rest.NewNotFound("cash code not found")
 	}
 	if err != nil {
 		return res, err
@@ -75,11 +76,11 @@ func (uc *paymentUsecaseImpl) ConfirmCashPayment(ctx context.Context, cashCode, 
 		}
 		switch {
 		case t.Status == shareddomain.TransactionPaid:
-			return helper.NewConflict("this cash code was already confirmed")
+			return rest.NewConflict("this cash code was already confirmed")
 		case t.Status != shareddomain.TransactionPending || cur.IsFinal():
-			return helper.NewConflict("this cash code is no longer payable (payment " + cur.Status + ")")
+			return rest.NewConflict("this cash code is no longer payable (payment " + cur.Status + ")")
 		case req.AmountReceived < t.Amount:
-			return helper.NewInvalid("the amount received is less than the amount due")
+			return rest.NewInvalid("the amount received is less than the amount due")
 		}
 		now := uc.now()
 		t.CashReceived, t.ConfirmedBy = &req.AmountReceived, &actor

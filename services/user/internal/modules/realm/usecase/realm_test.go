@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"monorepo/globalshared/auth"
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/realm/domain"
 	"monorepo/services/user/pkg/helper"
 	mockauthrepo "monorepo/services/user/pkg/mocks/modules/auth/repository"
@@ -85,20 +86,20 @@ func Test_CreateRealm(t *testing.T) {
 	t.Run("only the master realm may create realms", func(t *testing.T) {
 		h := newHarness(t)
 		_, err := h.uc.CreateRealm(ctxOf("acme"), &domain.RequestRealm{Name: "other"})
-		assert.Equal(t, 403, helper.HTTPStatus(err))
+		assert.Equal(t, 403, rest.HTTPStatus(err))
 		_, err = h.uc.GetAllRealm(ctxOf("acme"), &domain.FilterRealm{})
-		assert.Equal(t, 403, helper.HTTPStatus(err))
+		assert.Equal(t, 403, rest.HTTPStatus(err))
 	})
 
 	t.Run("name must be a slug and unique", func(t *testing.T) {
 		h := newHarness(t)
 		for _, bad := range []string{"", "Acme", "a b", "-a", "a/b", "../x"} {
 			_, err := h.uc.CreateRealm(ctxOf(common.MasterRealm), &domain.RequestRealm{Name: bad})
-			assert.Equal(t, 400, helper.HTTPStatus(err), bad)
+			assert.Equal(t, 400, rest.HTTPStatus(err), bad)
 		}
 		h.realms.On("FindByName", mock.Anything, "acme").Return(shareddomain.Realm{ID: 1}, nil)
 		_, err := h.uc.CreateRealm(ctxOf(common.MasterRealm), &domain.RequestRealm{Name: "acme"})
-		assert.Equal(t, 409, helper.HTTPStatus(err))
+		assert.Equal(t, 409, rest.HTTPStatus(err))
 	})
 
 	t.Run("token ttl sanity", func(t *testing.T) {
@@ -106,7 +107,7 @@ func Test_CreateRealm(t *testing.T) {
 		h.realms.On("FindByName", mock.Anything, "acme").Return(shareddomain.Realm{}, errNF)
 		access, refresh := 600, 60
 		_, err := h.uc.CreateRealm(ctxOf(common.MasterRealm), &domain.RequestRealm{Name: "acme", AccessTokenTTLSec: &access, RefreshTokenTTLSec: &refresh})
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 	})
 }
 
@@ -117,8 +118,8 @@ func Test_UpdateAndDeleteRealm(t *testing.T) {
 		h := newHarness(t)
 		h.realms.On("FindByName", mock.Anything, "master").Return(shareddomain.Realm{ID: 1, Name: "master", Enabled: true, AccessTokenTTLSec: 900, RefreshTokenTTLSec: 3600}, nil)
 		off := false
-		assert.Equal(t, 400, helper.HTTPStatus(h.uc.UpdateRealm(ctxOf(common.MasterRealm), "master", &domain.RequestRealm{Enabled: &off})))
-		assert.Equal(t, 400, helper.HTTPStatus(h.uc.DeleteRealm(ctxOf(common.MasterRealm), "master")))
+		assert.Equal(t, 400, rest.HTTPStatus(h.uc.UpdateRealm(ctxOf(common.MasterRealm), "master", &domain.RequestRealm{Enabled: &off})))
+		assert.Equal(t, 400, rest.HTTPStatus(h.uc.DeleteRealm(ctxOf(common.MasterRealm), "master")))
 	})
 
 	t.Run("update keeps unspecified fields and ignores a rename", func(t *testing.T) {
@@ -133,7 +134,7 @@ func Test_UpdateAndDeleteRealm(t *testing.T) {
 
 	t.Run("a realm cannot be managed by the token of another realm", func(t *testing.T) {
 		h := newHarness(t)
-		assert.Equal(t, 403, helper.HTTPStatus(h.uc.UpdateRealm(ctxOf("globex"), "acme", &domain.RequestRealm{})))
+		assert.Equal(t, 403, rest.HTTPStatus(h.uc.UpdateRealm(ctxOf("globex"), "acme", &domain.RequestRealm{})))
 	})
 
 	t.Run("delete revokes sessions then soft deletes; only master may", func(t *testing.T) {
@@ -141,7 +142,7 @@ func Test_UpdateAndDeleteRealm(t *testing.T) {
 		h.realms.On("FindByName", mock.Anything, "acme").Return(acme, nil)
 		h.sessions.On("RevokeByRealm", mock.Anything, 4).Return(nil)
 		h.realms.On("Delete", mock.Anything, 4).Return(nil)
-		assert.Equal(t, 403, helper.HTTPStatus(h.uc.DeleteRealm(ctxOf("acme"), "acme")))
+		assert.Equal(t, 403, rest.HTTPStatus(h.uc.DeleteRealm(ctxOf("acme"), "acme")))
 		assert.NoError(t, h.uc.DeleteRealm(ctxOf(common.MasterRealm), "acme"))
 		h.sessions.AssertCalled(t, "RevokeByRealm", mock.Anything, 4)
 	})
@@ -159,8 +160,8 @@ func Test_Keys(t *testing.T) {
 		h := setup()
 		h.keys.On("Find", mock.Anything, 4, 1).Return(shareddomain.RealmKey{ID: 1, RealmID: 4, Active: true}, nil)
 		h.keys.On("FetchActive", mock.Anything, 4).Return([]shareddomain.RealmKey{{ID: 1}}, nil)
-		assert.Equal(t, 409, helper.HTTPStatus(h.uc.UpdateRealmKey(ctxOf("acme"), "acme", 1, &domain.RequestRealmKey{Active: false})))
-		assert.Equal(t, 409, helper.HTTPStatus(h.uc.DeleteRealmKey(ctxOf("acme"), "acme", 1)))
+		assert.Equal(t, 409, rest.HTTPStatus(h.uc.UpdateRealmKey(ctxOf("acme"), "acme", 1, &domain.RequestRealmKey{Active: false})))
+		assert.Equal(t, 409, rest.HTTPStatus(h.uc.DeleteRealmKey(ctxOf("acme"), "acme", 1)))
 		h.keys.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
 	})
 

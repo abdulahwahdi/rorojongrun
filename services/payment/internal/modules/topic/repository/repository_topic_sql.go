@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"monorepo/globalshared/gormx"
 	"monorepo/services/payment/internal/modules/topic/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/tracer"
@@ -33,7 +33,7 @@ func (r *topicRepoSQL) filter(db *gorm.DB, f *domain.FilterTopic) *gorm.DB {
 		db = db.Where("is_enabled = ?", *f.IsEnabled)
 	}
 	if f.Search != "" {
-		db = db.Where("topic ILIKE ?", helper.Like(f.Search))
+		db = db.Where("topic ILIKE ?", gormx.Like(f.Search))
 	}
 	return db
 }
@@ -42,8 +42,8 @@ func (r *topicRepoSQL) FetchAll(ctx context.Context, f *domain.FilterTopic) (dat
 	trace, ctx := tracer.StartTraceWithContext(ctx, "TopicRepoSQL:FetchAll")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := r.filter(helper.DB(ctx, r.writeDB), f)
-	err = helper.ApplyPaging(db, &f.Filter, "id", "topic", "direction", "created_at", "updated_at").Find(&data).Error
+	db := r.filter(gormx.DB(ctx, r.writeDB), f)
+	err = gormx.ApplyPaging(db, &f.Filter, "id", "topic", "direction", "created_at", "updated_at").Find(&data).Error
 	return
 }
 
@@ -52,7 +52,7 @@ func (r *topicRepoSQL) Count(ctx context.Context, f *domain.FilterTopic) int {
 	defer trace.Finish()
 
 	var total int64
-	r.filter(helper.DB(ctx, r.writeDB), f).Model(&shareddomain.Topic{}).Count(&total)
+	r.filter(gormx.DB(ctx, r.writeDB), f).Model(&shareddomain.Topic{}).Count(&total)
 	return int(total)
 }
 
@@ -60,7 +60,7 @@ func (r *topicRepoSQL) FindByID(ctx context.Context, id int) (result shareddomai
 	trace, ctx := tracer.StartTraceWithContext(ctx, "TopicRepoSQL:FindByID")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.DB(ctx, r.writeDB).Where("id = ?", id).First(&result).Error
+	err = gormx.DB(ctx, r.writeDB).Where("id = ?", id).First(&result).Error
 	return
 }
 
@@ -70,7 +70,7 @@ func (r *topicRepoSQL) Save(ctx context.Context, data *shareddomain.Topic) (err 
 
 	now := time.Now()
 	data.UpdatedAt = now
-	db := helper.DB(ctx, r.writeDB)
+	db := gormx.DB(ctx, r.writeDB)
 	if data.ID == 0 {
 		data.CreatedAt = now
 		return db.Create(data).Error
@@ -82,14 +82,14 @@ func (r *topicRepoSQL) Delete(ctx context.Context, id int) (err error) {
 	trace, ctx := tracer.StartTraceWithContext(ctx, "TopicRepoSQL:Delete")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.DB(ctx, r.writeDB).Where("id = ?", id).Delete(&shareddomain.Topic{}).Error
+	return gormx.DB(ctx, r.writeDB).Where("id = ?", id).Delete(&shareddomain.Topic{}).Error
 }
 
 func (r *topicRepoSQL) FetchEnabledConsume(ctx context.Context) (data []shareddomain.Topic, err error) {
 	trace, ctx := tracer.StartTraceWithContext(ctx, "TopicRepoSQL:FetchEnabledConsume")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.DB(ctx, r.writeDB).
+	err = gormx.DB(ctx, r.writeDB).
 		Table("payment_kafka_topics t").
 		Select("t.*").
 		Joins("JOIN payment_gateways g ON g.code = t.gateway_code AND g.is_enabled = true").
@@ -103,7 +103,7 @@ func (r *topicRepoSQL) FetchEnabledPublish(ctx context.Context, eventType string
 	trace, ctx := tracer.StartTraceWithContext(ctx, "TopicRepoSQL:FetchEnabledPublish")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.DB(ctx, r.writeDB).
+	err = gormx.DB(ctx, r.writeDB).
 		Where("direction = ? AND event_type = ? AND is_enabled = true", shareddomain.TopicPublish, eventType).
 		Order("id ASC").Find(&data).Error
 	return
@@ -113,6 +113,6 @@ func (r *topicRepoSQL) FindConsumeByTopic(ctx context.Context, topic string) (re
 	trace, ctx := tracer.StartTraceWithContext(ctx, "TopicRepoSQL:FindConsumeByTopic")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.DB(ctx, r.writeDB).Where("direction = ? AND topic = ?", shareddomain.TopicConsume, topic).First(&result).Error
+	err = gormx.DB(ctx, r.writeDB).Where("direction = ? AND topic = ?", shareddomain.TopicConsume, topic).First(&result).Error
 	return
 }

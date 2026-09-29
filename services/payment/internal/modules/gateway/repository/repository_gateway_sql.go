@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"monorepo/services/payment/pkg/helper"
+	"monorepo/globalshared/gormx"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/tracer"
@@ -25,7 +25,7 @@ func (r *gatewayRepoSQL) FetchAll(ctx context.Context) (data []shareddomain.Gate
 	trace, ctx := tracer.StartTraceWithContext(ctx, "GatewayRepoSQL:FetchAll")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.DB(ctx, r.writeDB).Order("id ASC").Find(&data).Error
+	err = gormx.DB(ctx, r.writeDB).Order("id ASC").Find(&data).Error
 	return
 }
 
@@ -33,7 +33,7 @@ func (r *gatewayRepoSQL) FindByCode(ctx context.Context, code string) (result sh
 	trace, ctx := tracer.StartTraceWithContext(ctx, "GatewayRepoSQL:FindByCode")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.DB(ctx, r.writeDB).Where("code = ?", code).First(&result).Error
+	err = gormx.DB(ctx, r.writeDB).Where("code = ?", code).First(&result).Error
 	return
 }
 
@@ -43,7 +43,7 @@ func (r *gatewayRepoSQL) Save(ctx context.Context, data *shareddomain.Gateway) (
 
 	now := time.Now()
 	data.UpdatedAt = now
-	db := helper.DB(ctx, r.writeDB)
+	db := gormx.DB(ctx, r.writeDB)
 	if data.ID == 0 {
 		data.CreatedAt = now
 		return db.Create(data).Error

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/client/domain"
 	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -30,10 +31,10 @@ func normalizeGrants(clientType string, grants []string) (string, error) {
 	out := make([]string, 0, len(grants))
 	for _, g := range grants {
 		if !allowedGrants[g] {
-			return "", helper.NewInvalid("unsupported grant type " + g)
+			return "", rest.NewInvalid("unsupported grant type " + g)
 		}
 		if g == "client_credentials" && clientType != shareddomain.ClientTypeConfidential {
-			return "", helper.NewInvalid("client_credentials is only allowed for confidential clients")
+			return "", rest.NewInvalid("client_credentials is only allowed for confidential clients")
 		}
 		if !seen[g] {
 			seen[g] = true
@@ -93,14 +94,14 @@ func (uc *clientUsecaseImpl) CreateClient(ctx context.Context, realm string, req
 		req.Type = shareddomain.ClientTypePublic
 	}
 	if req.Type != shareddomain.ClientTypePublic && req.Type != shareddomain.ClientTypeConfidential {
-		return res, helper.NewInvalid("type must be public or confidential")
+		return res, rest.NewInvalid("type must be public or confidential")
 	}
 	grants, err := normalizeGrants(req.Type, req.GrantTypes)
 	if err != nil {
 		return res, err
 	}
 	if _, err = uc.repoSQL.ClientRepo().FindByClientID(ctx, r.ID, req.ClientID); err == nil {
-		return res, helper.NewConflict("client " + req.ClientID + " already exists in realm " + realm)
+		return res, rest.NewConflict("client " + req.ClientID + " already exists in realm " + realm)
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return res, err
 	}
@@ -214,7 +215,7 @@ func (uc *clientUsecaseImpl) RotateClientSecret(ctx context.Context, realm strin
 		return res, common.NotFound(err, "client")
 	}
 	if client.Type != shareddomain.ClientTypeConfidential {
-		return res, helper.NewInvalid("public clients have no secret")
+		return res, rest.NewInvalid("public clients have no secret")
 	}
 	secret := helper.RandomToken(32)
 	if client.SecretHash, err = helper.HashSecret(secret); err != nil {

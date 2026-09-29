@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"monorepo/globalshared/crypto"
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/gateway/domain"
-	"monorepo/services/payment/pkg/helper"
 	mockgatewayrepo "monorepo/services/payment/pkg/mocks/modules/gateway/repository"
 	mocksharedrepo "monorepo/services/payment/pkg/mocks/shared/repository"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
@@ -26,7 +26,7 @@ func newUC(repo *mockgatewayrepo.GatewayRepository) *gatewayUsecaseImpl {
 	return &gatewayUsecaseImpl{repoSQL: repoSQL, encryptionSecret: func() string { return testSecret }}
 }
 
-func status(err error) int { return helper.HTTPStatus(err) }
+func status(err error) int { return rest.HTTPStatus(err) }
 
 func Test_UpdateGateway(t *testing.T) {
 	ctx := context.Background()

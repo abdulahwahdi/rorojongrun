@@ -1,4 +1,6 @@
-package helper
+// Package rest holds the HTTP helpers every REST service of the monorepo shares: business errors
+// mapped to status codes, JSON-schema validated body and query decoding, and response writers.
+package rest
 
 import (
 	"errors"

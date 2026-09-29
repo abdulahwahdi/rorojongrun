@@ -3,8 +3,8 @@ package resthandler
 import (
 	"net/http"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/client/domain"
-	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared/usecase"
 
 	"github.com/golangid/candi/candihelper"
@@ -33,12 +33,12 @@ func NewRestHandler(uc usecase.Usecase, deps dependency.Dependency) *RestHandler
 func (h *RestHandler) Mount(root interfaces.RESTRouter) {
 	base := candihelper.V1 + "/realms/:realm/clients"
 
-	root.GET(base, h.getAllClient, helper.Secure(h.mw, "getAllClient")...)
-	root.POST(base, h.createClient, helper.Secure(h.mw, "createClient")...)
-	root.GET(base+"/:id", h.getDetailClient, helper.Secure(h.mw, "getDetailClient")...)
-	root.PUT(base+"/:id", h.updateClient, helper.Secure(h.mw, "updateClient")...)
-	root.DELETE(base+"/:id", h.deleteClient, helper.Secure(h.mw, "deleteClient")...)
-	root.POST(base+"/:id/secret/rotate", h.rotateClientSecret, helper.Secure(h.mw, "rotateClientSecret")...)
+	root.GET(base, h.getAllClient, rest.Secure(h.mw, "getAllClient")...)
+	root.POST(base, h.createClient, rest.Secure(h.mw, "createClient")...)
+	root.GET(base+"/:id", h.getDetailClient, rest.Secure(h.mw, "getDetailClient")...)
+	root.PUT(base+"/:id", h.updateClient, rest.Secure(h.mw, "updateClient")...)
+	root.DELETE(base+"/:id", h.deleteClient, rest.Secure(h.mw, "deleteClient")...)
+	root.POST(base+"/:id/secret/rotate", h.rotateClientSecret, rest.Secure(h.mw, "rotateClientSecret")...)
 }
 
 func realmParam(req *http.Request) string { return restserver.URLParam(req, "realm") }
@@ -55,12 +55,12 @@ func (h *RestHandler) getAllClient(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var filter domain.FilterClient
-	if !helper.ParseFilter(rw, req, h.validator, "client/get_all", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "client/get_all", &filter) {
 		return
 	}
 	result, err := h.uc.Client().GetAllClient(ctx, realmParam(req), &filter)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	response := wrapper.NewHTTPResponse(http.StatusOK, "Success", result.Data)
@@ -80,12 +80,12 @@ func (h *RestHandler) getDetailClient(rw http.ResponseWriter, req *http.Request)
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "ClientDeliveryREST:GetDetailClient")
 	defer trace.Finish()
 
-	data, err := h.uc.Client().GetDetailClient(ctx, realmParam(req), helper.URLParamInt(req, "id"))
+	data, err := h.uc.Client().GetDetailClient(ctx, realmParam(req), rest.URLParamInt(req, "id"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // createClient godoc
@@ -102,12 +102,12 @@ func (h *RestHandler) createClient(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestCreateClient
-	if !helper.DecodeBody(rw, req, h.validator, "client/create", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "client/create", &payload) {
 		return
 	}
 	res, err := h.uc.Client().CreateClient(ctx, realmParam(req), &payload)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	wrapper.NewHTTPResponse(http.StatusCreated, "Success", res).JSON(rw)
@@ -127,14 +127,14 @@ func (h *RestHandler) updateClient(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestUpdateClient
-	if !helper.DecodeBody(rw, req, h.validator, "client/update", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "client/update", &payload) {
 		return
 	}
-	if err := h.uc.Client().UpdateClient(ctx, realmParam(req), helper.URLParamInt(req, "id"), &payload); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Client().UpdateClient(ctx, realmParam(req), rest.URLParamInt(req, "id"), &payload); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // deleteClient godoc
@@ -148,11 +148,11 @@ func (h *RestHandler) deleteClient(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "ClientDeliveryREST:DeleteClient")
 	defer trace.Finish()
 
-	if err := h.uc.Client().DeleteClient(ctx, realmParam(req), helper.URLParamInt(req, "id")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Client().DeleteClient(ctx, realmParam(req), rest.URLParamInt(req, "id")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // rotateClientSecret godoc
@@ -167,10 +167,10 @@ func (h *RestHandler) rotateClientSecret(rw http.ResponseWriter, req *http.Reque
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "ClientDeliveryREST:RotateClientSecret")
 	defer trace.Finish()
 
-	res, err := h.uc.Client().RotateClientSecret(ctx, realmParam(req), helper.URLParamInt(req, "id"))
+	res, err := h.uc.Client().RotateClientSecret(ctx, realmParam(req), rest.URLParamInt(req, "id"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, res)
+	rest.WriteOK(rw, res)
 }

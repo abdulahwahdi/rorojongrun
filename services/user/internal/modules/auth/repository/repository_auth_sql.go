@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"monorepo/globalshared/gormx"
 	"monorepo/services/user/internal/modules/auth/domain"
 	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -30,7 +31,7 @@ func (r *sessionRepoSQL) filter(db *gorm.DB, realmID int, f *domain.FilterSessio
 		db = db.Where("revoked_at IS NULL AND rotated_at IS NULL AND expires_at > ?", time.Now())
 	}
 	if f.Search != "" {
-		db = db.Where("(ip ILIKE ? OR user_agent ILIKE ?)", helper.Like(f.Search), helper.Like(f.Search))
+		db = db.Where("(ip ILIKE ? OR user_agent ILIKE ?)", gormx.Like(f.Search), gormx.Like(f.Search))
 	}
 	return db
 }
@@ -39,7 +40,7 @@ func (r *sessionRepoSQL) FetchAll(ctx context.Context, realmID int, f *domain.Fi
 	trace, ctx := tracer.StartTraceWithContext(ctx, "SessionRepoSQL:FetchAll")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := helper.ApplyPaging(r.filter(helper.DB(ctx, r.readDB), realmID, f), &f.Filter, "id", "id", "user_id", "created_at", "expires_at")
+	db := gormx.ApplyPaging(r.filter(gormx.DB(ctx, r.readDB), realmID, f), &f.Filter, "id", "id", "user_id", "created_at", "expires_at")
 	err = db.Find(&data).Error
 	return
 }
@@ -49,7 +50,7 @@ func (r *sessionRepoSQL) Count(ctx context.Context, realmID int, f *domain.Filte
 	defer trace.Finish()
 
 	var total int64
-	r.filter(helper.DB(ctx, r.readDB), realmID, f).Model(&shareddomain.Session{}).Count(&total)
+	r.filter(gormx.DB(ctx, r.readDB), realmID, f).Model(&shareddomain.Session{}).Count(&total)
 	return int(total)
 }
 
@@ -57,7 +58,7 @@ func (r *sessionRepoSQL) Find(ctx context.Context, realmID, id int) (res sharedd
 	trace, ctx := tracer.StartTraceWithContext(ctx, "SessionRepoSQL:Find")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.DB(ctx, r.readDB).Where("realm_id = ? AND id = ?", realmID, id).First(&res).Error
+	err = gormx.DB(ctx, r.readDB).Where("realm_id = ? AND id = ?", realmID, id).First(&res).Error
 	return
 }
 
@@ -65,7 +66,7 @@ func (r *sessionRepoSQL) FindByRefreshHash(ctx context.Context, hash string) (re
 	trace, ctx := tracer.StartTraceWithContext(ctx, "SessionRepoSQL:FindByRefreshHash")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.DB(ctx, r.readDB).Where("refresh_hash = ?", hash).First(&res).Error
+	err = gormx.DB(ctx, r.readDB).Where("refresh_hash = ?", hash).First(&res).Error
 	return
 }
 
@@ -73,7 +74,7 @@ func (r *sessionRepoSQL) Save(ctx context.Context, data *shareddomain.Session) (
 	trace, ctx := tracer.StartTraceWithContext(ctx, "SessionRepoSQL:Save")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := helper.DB(ctx, r.writeDB)
+	db := gormx.DB(ctx, r.writeDB)
 	if data.ID != 0 {
 		return helper.Save(db, data.ID, data)
 	}
@@ -91,7 +92,7 @@ func (r *sessionRepoSQL) MarkRotated(ctx context.Context, id int) (ok bool, err 
 	trace, ctx := tracer.StartTraceWithContext(ctx, "SessionRepoSQL:MarkRotated")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	res := helper.DB(ctx, r.writeDB).Model(&shareddomain.Session{}).
+	res := gormx.DB(ctx, r.writeDB).Model(&shareddomain.Session{}).
 		Where("id = ? AND rotated_at IS NULL AND revoked_at IS NULL", id).Update("rotated_at", time.Now())
 	return res.RowsAffected == 1, res.Error
 }
@@ -101,7 +102,7 @@ func (r *sessionRepoSQL) IsFamilyActive(ctx context.Context, familyID int) (acti
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
 	var total, revoked int64
-	err = helper.DB(ctx, r.readDB).Model(&shareddomain.Session{}).Where("family_id = ?", familyID).
+	err = gormx.DB(ctx, r.readDB).Model(&shareddomain.Session{}).Where("family_id = ?", familyID).
 		Select("COUNT(*), COUNT(revoked_at)").Row().Scan(&total, &revoked)
 	return total > 0 && revoked == 0, err
 }
@@ -110,7 +111,7 @@ func (r *sessionRepoSQL) revoke(ctx context.Context, name, where string, arg any
 	trace, ctx := tracer.StartTraceWithContext(ctx, name)
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.DB(ctx, r.writeDB).Model(&shareddomain.Session{}).
+	return gormx.DB(ctx, r.writeDB).Model(&shareddomain.Session{}).
 		Where(where+" AND revoked_at IS NULL", arg).Update("revoked_at", time.Now()).Error
 }
 
