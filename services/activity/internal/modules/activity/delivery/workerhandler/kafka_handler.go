@@ -3,16 +3,23 @@
 package workerhandler
 
 import (
-	"fmt"
+	"encoding/json"
+	"time"
 
+	"monorepo/services/activity/internal/modules/activity/domain"
 	"monorepo/services/activity/pkg/shared/usecase"
 
 	"github.com/golangid/candi/candishared"
 	"github.com/golangid/candi/codebase/factory/dependency"
 	"github.com/golangid/candi/codebase/factory/types"
 	"github.com/golangid/candi/codebase/interfaces"
+	"github.com/golangid/candi/logger"
 	"github.com/golangid/candi/tracer"
 )
+
+// TopicActivityRequested carries audit trail entries from the other services, with the same
+// payload as POST /v1/activity (serviceName/eventType/referenceId/actorId/message/metadata)
+const TopicActivityRequested = "activity.requested"
 
 // KafkaHandler struct
 type KafkaHandler struct {
@@ -28,20 +35,36 @@ func NewKafkaHandler(uc usecase.Usecase, deps dependency.Dependency) *KafkaHandl
 	}
 }
 
-// MountHandlers mount handler group
+// MountHandlers mount handler group. Producers (e.g. order, through its outbox) publish to
+// "activity.requested"; activity stays a pure consumer that needs no knowledge of their events.
 func (h *KafkaHandler) MountHandlers(group *types.WorkerHandlerGroup) {
-	group.Add("activity", h.handleActivity) // handling topic "activity"
+	group.Add(TopicActivityRequested, h.handleActivityRequested)
 }
 
-// ProcessMessage from kafka consumer
-func (h *KafkaHandler) handleActivity(eventContext *candishared.EventContext) error {
-	trace, ctx := tracer.StartTraceWithContext(eventContext.Context(), "ActivityDeliveryKafka:HandleActivity")
+// handleActivityRequested persists one entry. Kafka is already the durable async hop, so the entry is
+// written directly (no task queue); a transient Mongo error is retried a few times.
+func (h *KafkaHandler) handleActivityRequested(eventContext *candishared.EventContext) error {
+	trace, ctx := tracer.StartTraceWithContext(eventContext.Context(), "ActivityDeliveryKafka:HandleActivityRequested")
 	defer trace.Finish()
 
-	fmt.Printf("message consumed in handler %s. key: %s, message: %s\n", eventContext.HandlerRoute(), eventContext.Key(), eventContext.Message())
+	message := eventContext.Message()
+	if err := h.validator.ValidateDocument("activity/save", message); err != nil {
+		logger.LogE("activity: skipping invalid activity.requested message: " + err.Error())
+		return nil // a poison message must not be retried forever
+	}
+	var req domain.RequestSaveActivity
+	if err := json.Unmarshal(message, &req); err != nil {
+		logger.LogE("activity: skipping undecodable activity.requested message: " + err.Error())
+		return nil
+	}
 
-	// exec usecase
-	// h.uc.SomethingUsecase()
-
-	return ctx.Err()
+	var err error
+	for attempt := 1; attempt <= 3; attempt++ {
+		if err = h.uc.Activity().PersistActivityLog(ctx, &req); err == nil {
+			return nil
+		}
+		time.Sleep(time.Duration(attempt) * 500 * time.Millisecond)
+	}
+	trace.SetError(err)
+	return err
 }
