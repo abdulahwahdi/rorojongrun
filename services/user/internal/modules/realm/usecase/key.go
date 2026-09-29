@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"monorepo/globalshared/auth"
+	"monorepo/globalshared/crypto"
 	"monorepo/services/user/internal/modules/realm/domain"
 	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared"
@@ -24,7 +25,7 @@ func (uc *realmUsecaseImpl) newSigningKey(ctx context.Context, realmID int) (key
 	if err != nil {
 		return key, err
 	}
-	enc, err := helper.Encrypt(shared.GetEnv().KeyEncryptionSecret, privPEM)
+	enc, err := crypto.Encrypt(shared.GetEnv().KeyEncryptionSecret, privPEM)
 	if err != nil {
 		return key, err
 	}

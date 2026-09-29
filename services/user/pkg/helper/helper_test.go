@@ -17,22 +17,6 @@ func Test_Crypto(t *testing.T) {
 		assert.False(t, CheckSecret("", ""), "an empty hash must never match")
 	})
 
-	t.Run("aes-gcm round trip, wrong secret and tampering fail", func(t *testing.T) {
-		enc, err := Encrypt("s", []byte("payload"))
-		assert.NoError(t, err)
-		dec, err := Decrypt("s", enc)
-		assert.NoError(t, err)
-		assert.Equal(t, "payload", string(dec))
-		_, err = Decrypt("other", enc)
-		assert.Error(t, err)
-		_, err = Decrypt("s", enc[:len(enc)-4]+"AAAA")
-		assert.Error(t, err)
-		_, err = Decrypt("s", "")
-		assert.Error(t, err)
-		enc2, _ := Encrypt("s", []byte("payload"))
-		assert.NotEqual(t, enc, enc2, "fresh nonce every time")
-	})
-
 	t.Run("rsa pem round trip", func(t *testing.T) {
 		k, err := GenerateRSAKey()
 		assert.NoError(t, err)

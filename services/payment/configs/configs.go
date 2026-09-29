@@ -4,8 +4,11 @@ package configs
 
 import (
 	"context"
+	"time"
 
+	"monorepo/globalshared/auth"
 	"monorepo/sdk"
+	"monorepo/sdk/user"
 	"monorepo/services/payment/api"
 	"monorepo/services/payment/pkg/shared"
 	"monorepo/services/payment/pkg/shared/repository"
@@ -33,7 +36,7 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 	shared.SetEnv(sharedEnv)
 
 	logger.InitZap()
-	// logger.SetMaskLog(logger.NewMasker()) // add this for mask sensitive information
+	logger.SetMaskLog(logger.NewMasker("serverKey", "secretKey", "callbackToken", "credentials", "x-callback-token", "x-mock-token"))
 
 	baseCfg.LoadFunc(func(ctx context.Context) []interfaces.Closer {
 		otel, _ := tracer.InitOtel(baseCfg.ServiceName)
@@ -41,8 +44,9 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 		sqlDeps := database.InitSQLDatabase()
 		// mongoDeps := database.InitMongoDB(ctx)
 
+		// permission decisions come from the user service (gRPC), tokens are verified locally through its JWKS
 		sdk.SetGlobalSDK(
-		// init service client sdk
+			sdk.SetUser(user.NewUserServiceGRPC(sharedEnv.UserGRPCHost, sharedEnv.UserBasicAuthKey)),
 		)
 
 		locker := &candiutils.NoopLocker{}
@@ -75,9 +79,13 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 	repository.SetSharedRepository(deps)
 	usecase.SetSharedUsecase(deps)
 
+	// REST and gRPC tokens are issued by the user service, see services/user/docs/realms-and-rbac.md
+	tokenValidator := auth.NewTokenValidator(sharedEnv.IssuerBaseURL, auth.NewJWKSKeyProvider(sharedEnv.UserHTTPHost))
+	aclChecker := auth.NewACLChecker("payment", auth.NewSDKPermissionClient(sdk.GetSDK().User()), 30*time.Second)
+
 	deps.SetMiddleware(middleware.NewMiddlewareWithOption(
-		middleware.SetTokenValidator(&shared.DefaultMiddleware{}),
-		middleware.SetACLPermissionChecker(&shared.DefaultMiddleware{}),
+		middleware.SetTokenValidator(tokenValidator),
+		middleware.SetACLPermissionChecker(aclChecker),
 		middleware.SetUserIDExtractor(func(tokenClaim *candishared.TokenClaim) (userID string) {
 			return tokenClaim.Subject
 		}),

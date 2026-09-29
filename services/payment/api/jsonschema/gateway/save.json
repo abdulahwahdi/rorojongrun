@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "environment": { "type": "string", "enum": ["sandbox", "production"] },
+    "settings": { "type": "object" },
+    "credentials": { "type": "object", "additionalProperties": { "type": "string", "maxLength": 500 } }
+  },
+  "additionalProperties": false
+}

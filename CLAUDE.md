@@ -179,7 +179,9 @@ Adjust only with a clear reason (write it down here when you deviate).
 
 - **user** — REST + GraphQL (client-facing), gRPC (server-to-server auth checks)
 - **payment** — REST/gRPC for synchronous calls, Kafka consumer for async payment
-  gateway webhooks/callbacks
+  gateway webhooks/callbacks. *Deviation:* the consumer is payment's own `CallbackConsumer` (topics read
+  from the DB and hot-reloaded) instead of candi's static Kafka worker, plus the Cron scheduler for
+  expiry and the outbox safety-net flush — see "Payments" below
 - **order** — REST/GraphQL for client-facing order creation, Kafka producer/consumer
   to publish order-state events and consume payment/kitchen/shipment status
 - **notification** — Kafka consumer only (fan-out on events from order/payment/
@@ -256,6 +258,26 @@ Rules:
   (protected by the internal basic auth key), cached for a few seconds by the checker.
 - **REST routes of the user service are registered flat** (`root.GET("/v1/realms/:realm/users", ...)`),
   never with `root.Group("/v1/realms")`: every module shares that prefix and chi cannot mount one prefix twice.
+
+## Payments (payment service)
+
+`services/payment` bridges the other services to the payment gateways (Midtrans, Xendit, a dev-only mock) and
+cash. Full reference: `services/payment/docs/payment-flow.md`.
+
+- **Callers never talk to a gateway.** They ask `payment` for a payment link (`sdk/payment`, gRPC or REST) and
+  react to Kafka events. Every checkout step after that (methods, select, pay, cash, expiry) lives in `payment`.
+- **Everything operational is in the database, not in env or code**: gateways (enabled, environment, encrypted
+  credentials), payment methods (enabled, fee, amount range) and the Kafka topics (`payment_kafka_topics`).
+  Gateway credentials are AES-GCM encrypted with `GATEWAY_ENCRYPTION_SECRET` (`globalshared/crypto`).
+- **Callbacks are consumed from DB-configured topics and hot-reloaded** by `payment`'s own consumer
+  (`USE_CALLBACK_CONSUMER`); candi's static Kafka worker is off (`USE_KAFKA_CONSUMER=false`) in this service.
+- **Events out go through a transactional outbox** (`payment_outbox`), never a direct publish from a usecase.
+  Every checkout attempt publishes `payment.checkout_started`; also `payment.created|completed|expired|cancelled`.
+  Customer emails are `notification.requested` messages (templates `payment_checkout`, `payment_paid` seeded in
+  `notification`), so `notification` stays a pure consumer.
+- A new gateway is one `provider.Provider` implementation in `internal/modules/gateway/provider/` (charge,
+  cancel, verify-callback) plus a seeded `payment_gateways` row; nothing else in the payment module knows
+  which gateway it talks to.
 
 ## Running services locally
 

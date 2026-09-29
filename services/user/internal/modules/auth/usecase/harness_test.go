@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"monorepo/globalshared/crypto"
 	"monorepo/services/user/pkg/helper"
 	mockauthrepo "monorepo/services/user/pkg/mocks/modules/auth/repository"
 	mockclient "monorepo/services/user/pkg/mocks/modules/client/repository"
@@ -56,7 +57,7 @@ func newHarness(t *testing.T) *harness {
 		t.Fatal(err)
 	}
 	privPEM, _ := helper.PrivateKeyToPEM(h.priv)
-	enc, _ := helper.Encrypt(testSecret, privPEM)
+	enc, _ := crypto.Encrypt(testSecret, privPEM)
 
 	h.repo.On("RealmRepo").Return(h.realms)
 	h.repo.On("RealmKeyRepo").Return(h.keys)

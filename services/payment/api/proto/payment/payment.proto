@@ -1,0 +1,74 @@
+syntax = "proto3";
+package payment;
+option go_package = "monorepo/sdk/payment/proto/payment";
+
+// PaymentHandler is the internal (service-to-service) API of the payment service.
+// Other services request a payment link here; the customer then completes the
+// checkout through the payment service's REST checkout API.
+service PaymentHandler {
+	// CreatePayment issues a payment link. Idempotent per (source, referenceId) while the payment is open.
+	rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
+	rpc GetPayment(GetPaymentRequest) returns (PaymentModel);
+	rpc CancelPayment(CancelPaymentRequest) returns (PaymentModel);
+}
+
+message Customer {
+	string name = 1;
+	string email = 2;
+	string phone = 3;
+}
+
+message Item {
+	string name = 1;
+	int64 price = 2;
+	int32 quantity = 3;
+}
+
+message CreatePaymentRequest {
+	string source = 1;       // calling service, e.g. "order"
+	string referenceId = 2;  // the caller's own id, e.g. the order id
+	string description = 3;
+	int64 amount = 4;        // IDR
+	Customer customer = 5;
+	repeated Item items = 6;
+	string metadataJson = 7; // optional JSON object echoed back in payment events
+	repeated string allowedMethods = 8;
+	int64 expiresInSec = 9;  // 0 = service default
+	string successUrl = 10;
+	string failureUrl = 11;
+}
+
+message CreatePaymentResponse {
+	string paymentId = 1;
+	string token = 2;
+	string paymentUrl = 3;
+	string status = 4;
+	string referenceId = 5;
+	int64 amount = 6;
+	string currency = 7;
+	string expiresAt = 8;
+}
+
+message GetPaymentRequest {
+	string id = 1;
+}
+
+message CancelPaymentRequest {
+	string id = 1;
+}
+
+message PaymentModel {
+	string id = 1;
+	string source = 2;
+	string referenceId = 3;
+	string description = 4;
+	int64 amount = 5;
+	int64 fee = 6;
+	int64 totalAmount = 7;
+	string currency = 8;
+	string status = 9;
+	string methodCode = 10;
+	string expiresAt = 11;
+	string paidAt = 12;
+	string createdAt = 13;
+}

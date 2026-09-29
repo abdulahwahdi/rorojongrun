@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "page": { "type": "integer", "minimum": 0 },
+    "limit": { "type": "integer", "minimum": 0, "maximum": 200 },
+    "search": { "type": "string" },
+    "orderBy": { "type": "string" },
+    "sort": { "type": "string" },
+    "showAll": { "type": "boolean" },
+    "gatewayCode": { "type": "string" },
+    "status": { "type": "string", "enum": ["", "processed", "duplicate", "ignored", "failed"] },
+    "externalId": { "type": "string" },
+    "topic": { "type": "string" }
+  }
+}
