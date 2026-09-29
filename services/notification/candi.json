@@ -8,27 +8,30 @@
      "License": "",
      "Year": 2026,
      "IsMonorepo": true,
-     "RestHandler": false,
+     "RestHandler": true,
      "GRPCHandler": false,
      "GraphQLHandler": false,
      "FiberRestHandler": false,
      "KafkaHandler": true,
      "SchedulerHandler": false,
      "RedisSubsHandler": false,
-     "TaskQueueHandler": false,
+     "TaskQueueHandler": true,
      "PostgresListenerHandler": false,
      "RabbitMQHandler": false,
      "IsWorkerActive": true,
      "RedisDeps": false,
-     "SQLDeps": false,
-     "MongoDeps": true,
-     "SQLUseGORM": false,
+     "SQLDeps": true,
+     "MongoDeps": false,
+     "SQLUseGORM": true,
      "ArangoDeps": false,
-     "SQLDriver": "",
+     "SQLDriver": "postgres",
      "WorkerPlugins": null,
      "Modules": [
           {
                "ModuleName": "notification"
+          },
+          {
+               "ModuleName": "otp"
           }
      ]
 }

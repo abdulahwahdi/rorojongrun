@@ -1,0 +1,24 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for send notification",
+	"type": "object",
+	"properties": {
+		"channel": {
+			"type": "string",
+			"enum": ["email", "push"]
+		},
+		"templateCode": {
+			"type": "string",
+			"minLength": 1
+		},
+		"recipient": {
+			"type": "string",
+			"minLength": 1
+		},
+		"variables": {
+			"type": "object"
+		}
+	},
+	"required": [ "channel", "templateCode", "recipient" ],
+	"additionalProperties": false
+}

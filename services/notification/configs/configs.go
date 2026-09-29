@@ -38,8 +38,8 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 	baseCfg.LoadFunc(func(ctx context.Context) []interfaces.Closer {
 		otel, _ := tracer.InitOtel(baseCfg.ServiceName)
 		// redisDeps := database.InitRedis()
-		// sqlDeps := database.InitSQLDatabase()
-		mongoDeps := database.InitMongoDB(ctx)
+		sqlDeps := database.InitSQLDatabase()
+		// mongoDeps := database.InitMongoDB(ctx)
 
 		sdk.SetGlobalSDK(
 		// init service client sdk
@@ -63,8 +63,8 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 			dependency.SetBrokers(brokerDeps.GetBrokers()),
 			dependency.SetLocker(locker),
 			// dependency.SetRedisPool(redisDeps),
-			// dependency.SetSQLDatabase(sqlDeps),
-			dependency.SetMongoDatabase(mongoDeps),
+			dependency.SetSQLDatabase(sqlDeps),
+			// dependency.SetMongoDatabase(mongoDeps),
 			// ... add more dependencies
 		)
 		return []interfaces.Closer{ // throw back to base config for close connection when application shutdown

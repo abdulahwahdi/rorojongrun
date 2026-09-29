@@ -1,6 +1,8 @@
 package notification
 
 import (
+	"context"
+	"errors"
 	"net/url"
 	"time"
 
@@ -8,6 +10,12 @@ import (
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
 )
+
+// errGRPCNotAvailable is returned by every method — the notification
+// service has no gRPC handler enabled (candi.json: GRPCHandler=false), so
+// there is no proto/server to call. Fill these in for real if that changes
+// via `candi -add-handler -service=notification`.
+var errGRPCNotAvailable = errors.New("notification: grpc client not available, service has no grpc handler enabled")
 
 type notificationGRPCImpl struct {
 	host    string
@@ -38,4 +46,12 @@ func NewNotificationServiceGRPC(host string, authKey string) Notification {
 		authKey: authKey,
 		conn:    conn,
 	}
+}
+
+func (r *notificationGRPCImpl) SendNotification(ctx context.Context, req SendNotificationRequest) (jobID string, err error) {
+	return "", errGRPCNotAvailable
+}
+
+func (r *notificationGRPCImpl) GetAllNotificationLogs(ctx context.Context, filter GetNotificationLogsFilter) (NotificationLogListResponse, error) {
+	return NotificationLogListResponse{}, errGRPCNotAvailable
 }

@@ -2,11 +2,24 @@
 
 package common
 
+import (
+	"context"
+
+	// Only the notification module's domain package is imported here (not
+	// its usecase package) — every module's usecase imports this common
+	// package, so referencing another module's usecase interface type here
+	// would create an import cycle. Declaring the bridged method directly
+	// with domain-only types avoids that; see pkg/shared/usecase/usecase.go
+	// for where this gets bridged to the real notification usecase.
+	notificationdomain "monorepo/services/notification/internal/modules/notification/domain"
+)
+
 var commonUC Usecase
 
 // Usecase common abstraction for bridging shared method inter usecase in module
 type Usecase interface {
 	// shared method from another usecase
+	SendNotification(ctx context.Context, req *notificationdomain.RequestSendNotification) (jobID string, err error)
 }
 
 // SetCommonUsecase constructor
