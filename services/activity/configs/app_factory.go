@@ -4,14 +4,17 @@ package configs
 
 import (
 	"monorepo/services/activity/api"
+	_ "monorepo/services/activity/docs" // registers the generated swagger spec
 
 	"github.com/golangid/candi/candihelper"
 	graphqlserver "github.com/golangid/candi/codebase/app/graphql_server"
 	restserver "github.com/golangid/candi/codebase/app/rest_server"
+	"github.com/golangid/candi/codebase/interfaces"
 
 	"github.com/golangid/candi/codebase/factory"
 	"github.com/golangid/candi/codebase/factory/appfactory"
 	"github.com/golangid/candi/config/env"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 /*
@@ -53,9 +56,14 @@ func InitAppFromEnvironmentConfig(service factory.ServiceFactory) (apps []factor
 	}
 
 	if env.BaseEnv().UseREST {
-		apps = append(apps, appfactory.SetupRESTServer(service, restserver.AddGraphQLOption(
-			graphqlserver.SetSchemaSource(candihelper.LoadAllFileFromFS(api.GraphQLSchema, ".", ".graphql")),
-		)))
+		apps = append(apps, appfactory.SetupRESTServer(service,
+			restserver.AddGraphQLOption(
+				graphqlserver.SetSchemaSource(candihelper.LoadAllFileFromFS(api.GraphQLSchema, ".", ".graphql")),
+			),
+			restserver.AddMountRouter(func(r interfaces.RESTRouter) {
+				r.HandleFunc("/swagger/*", httpSwagger.WrapHandler)
+			}),
+		))
 	} else if env.BaseEnv().UseGraphQL {
 		apps = append(apps, appfactory.SetupGraphQLServer(service, graphqlserver.SetSchemaSource(
 			candihelper.LoadAllFileFromFS(api.GraphQLSchema, ".", ".graphql"),

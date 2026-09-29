@@ -1,0 +1,202 @@
+basePath: /
+definitions:
+  candishared.Meta:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      totalPages:
+        type: integer
+      totalRecords:
+        type: integer
+    type: object
+  domain.RequestSaveActivity:
+    properties:
+      actorId:
+        type: string
+      eventType:
+        type: string
+      message:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      referenceId:
+        type: string
+      serviceName:
+        type: string
+    type: object
+  domain.ResponseActivity:
+    properties:
+      actorId:
+        type: string
+      createdAt:
+        type: string
+      eventType:
+        type: string
+      id:
+        type: string
+      message:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      referenceId:
+        type: string
+      serviceName:
+        type: string
+      updatedAt:
+        type: string
+    type: object
+  domain.ResponseActivityList:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/domain.ResponseActivity'
+        type: array
+      meta:
+        $ref: '#/definitions/candishared.Meta'
+    type: object
+  domain.ResponseSaveActivity:
+    properties:
+      jobId:
+        type: string
+    type: object
+  wrapper.HTTPResponse:
+    properties:
+      code:
+        type: integer
+      data: {}
+      errors: {}
+      message:
+        type: string
+      meta: {}
+      success:
+        type: boolean
+    type: object
+info:
+  contact: {}
+  description: Audit/activity log service — save and query activity log entries.
+  title: Activity Service API
+  version: "1.0"
+paths:
+  /v1/activity:
+    get:
+      consumes:
+      - application/json
+      description: API for get all activity logs
+      parameters:
+      - description: Page with default value is 1
+        in: query
+        name: page
+        type: string
+      - description: Limit with default value is 10
+        in: query
+        name: limit
+        type: string
+      - description: Search (matches message)
+        in: query
+        name: search
+        type: string
+      - description: Filter by service name
+        in: query
+        name: serviceName
+        type: string
+      - description: Filter by reference id
+        in: query
+        name: referenceId
+        type: string
+      - description: Filter by created_at >= startDate (RFC3339)
+        in: query
+        name: startDate
+        type: string
+      - description: Filter by created_at <= endDate (RFC3339)
+        in: query
+        name: endDate
+        type: string
+      - description: Order By
+        in: query
+        name: orderBy
+        type: string
+      - description: Sort (ASC DESC)
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.ResponseActivityList'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/wrapper.HTTPResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get All Activity Logs
+      tags:
+      - Activity
+    post:
+      consumes:
+      - application/json
+      description: Enqueues an activity log entry for async persistence and returns
+        immediately
+      parameters:
+      - description: Body Data
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/domain.RequestSaveActivity'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/domain.ResponseSaveActivity'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/wrapper.HTTPResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Save Activity Log
+      tags:
+      - Activity
+  /v1/activity/{id}:
+    get:
+      consumes:
+      - application/json
+      description: API for get detail activity log by id
+      parameters:
+      - description: ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.ResponseActivity'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/wrapper.HTTPResponse'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Activity Log By ID
+      tags:
+      - Activity
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

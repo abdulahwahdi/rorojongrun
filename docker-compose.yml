@@ -1,0 +1,72 @@
+# Local dev stack for the activity service (Mongo + Kafka + Jaeger + the
+# service itself). Before building, the service needs a real .env file
+# (gitignored, not baked from this repo) since the Dockerfile bakes
+# services/<name>/.env into the image at build time:
+#   cp services/activity/.env.sample services/activity/.env
+# Then: docker compose up --build
+#
+# Host ports used: 8000 (REST + swagger UI), 8081 (task queue dashboard —
+# mapped off the default 8080 to avoid clashing with tools like kafka-ui),
+# 27017 (Mongo). Kafka and Jaeger are reachable only on the internal
+# compose network unless you add your own port mappings.
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user
+      MONGO_INITDB_ROOT_PASSWORD: pass
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  kafka:
+    image: apache/kafka:3.8.0
+    restart: unless-stopped
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_HEAP_OPTS: -Xmx256m -Xms256m
+    # No host port published — activity reaches this over the compose
+    # network as "kafka:9092". Publish 9092 yourself if you need an
+    # external client (e.g. a CLI kafka producer) to reach it too.
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    restart: unless-stopped
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    # No host ports published — activity reaches this over the compose
+    # network as "jaeger:4317". Publish 16686/4317 yourself if you want
+    # the Jaeger UI or external OTLP access on this host.
+
+  activity:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_NAME: activity
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - kafka
+      - jaeger
+    environment:
+      MONGODB_HOST_WRITE: mongodb://user:pass@mongo:27017/activity?authSource=admin
+      MONGODB_HOST_READ: mongodb://user:pass@mongo:27017/activity?authSource=admin
+      KAFKA_BROKERS: kafka:9092
+      OTEL_TRACING_HOST: jaeger:4317
+    ports:
+      - "8000:8000"   # REST API + swagger UI
+      - "8081:8080"   # task queue dashboard (8080 avoided: commonly taken by kafka-ui et al.)
+
+volumes:
+  mongo_data:
