@@ -1,0 +1,100 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "page": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "limit": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 200
+    },
+    "search": {
+      "type": "string"
+    },
+    "orderBy": {
+      "type": "string",
+      "enum": [
+        "",
+        "placed_at",
+        "paid_at",
+        "total_amount",
+        "order_number",
+        "updated_at"
+      ]
+    },
+    "sort": {
+      "type": "string"
+    },
+    "showAll": {
+      "type": "boolean"
+    },
+    "dateFrom": {
+      "type": "string"
+    },
+    "dateTo": {
+      "type": "string"
+    },
+    "paymentStatus": {
+      "type": "string",
+      "enum": [
+        "",
+        "pending",
+        "processing",
+        "paid",
+        "expired",
+        "cancelled"
+      ]
+    },
+    "orderStatus": {
+      "type": "string",
+      "enum": [
+        "",
+        "awaiting_payment",
+        "confirmed",
+        "preparing",
+        "ready",
+        "completed",
+        "cancelled",
+        "refunded"
+      ]
+    },
+    "source": {
+      "type": "string"
+    },
+    "merchantId": {
+      "type": "string"
+    },
+    "outletId": {
+      "type": "string"
+    },
+    "cashierId": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string"
+    },
+    "methodCode": {
+      "type": "string"
+    },
+    "shiftId": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "amountMismatch": {
+      "type": "boolean"
+    },
+    "groupBy": {
+      "type": "string",
+      "enum": [
+        "",
+        "day",
+        "method",
+        "outlet",
+        "cashier"
+      ]
+    }
+  }
+}

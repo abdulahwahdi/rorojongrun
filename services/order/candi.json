@@ -10,12 +10,12 @@
      "IsMonorepo": true,
      "RestHandler": true,
      "GRPCHandler": false,
-     "GraphQLHandler": true,
+     "GraphQLHandler": false,
      "FiberRestHandler": false,
      "KafkaHandler": true,
-     "SchedulerHandler": false,
+     "SchedulerHandler": true,
      "RedisSubsHandler": false,
-     "TaskQueueHandler": false,
+     "TaskQueueHandler": true,
      "PostgresListenerHandler": false,
      "RabbitMQHandler": false,
      "IsWorkerActive": true,
@@ -29,6 +29,18 @@
      "Modules": [
           {
                "ModuleName": "order"
+          },
+          {
+               "ModuleName": "invoice"
+          },
+          {
+               "ModuleName": "merchant"
+          },
+          {
+               "ModuleName": "shift"
+          },
+          {
+               "ModuleName": "export"
           }
      ]
 }

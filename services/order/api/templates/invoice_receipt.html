@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Title}} {{.Invoice.Number}}</title>
+<style>
+  @page { size: 80mm auto; margin: 3mm; }
+  body { font-family: "Courier New", monospace; font-size: 12px; width: 72mm; margin: 0 auto; color: #000; }
+  .c { text-align: center; }
+  .row { display: flex; justify-content: space-between; gap: 6px; }
+  hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+  .b { font-weight: bold; }
+  @media print { .no-print { display: none; } }
+</style>
+</head>
+<body>
+  <div class="c b">{{.Invoice.SellerName}}</div>
+  {{if .Invoice.SellerAddress}}<div class="c">{{.Invoice.SellerAddress}}</div>{{end}}
+  {{if .Invoice.SellerTaxID}}<div class="c">Tax ID {{.Invoice.SellerTaxID}}</div>{{end}}
+  <hr>
+  <div class="c b">{{.Title}}</div>
+  <div>{{.Invoice.Number}}</div>
+  <div>{{.IssuedAt}}</div>
+  <div>Order {{.Invoice.OrderNumber}}</div>
+  {{if .RefNumber}}<div>Reverses {{.RefNumber}}</div>{{end}}
+  <hr>
+  {{range .Invoice.Items}}
+  <div>{{.Name}}</div>
+  <div class="row"><span>{{.Quantity}} x {{idr .Price}}</span><span>{{idr .LineTotal}}</span></div>
+  {{end}}
+  <hr>
+  <div class="row"><span>Subtotal</span><span>{{idr .Invoice.Subtotal}}</span></div>
+  {{if ne .Invoice.TaxMode "none"}}<div class="row"><span>{{.Invoice.TaxName}} {{.Invoice.TaxRate}}%{{if eq .Invoice.TaxMode "inclusive"}} incl.{{end}}</span><span>{{idr .Invoice.TaxAmount}}</span></div>{{end}}
+  {{if .Invoice.RoundingAdjustment}}<div class="row"><span>Rounding</span><span>{{idr .Invoice.RoundingAdjustment}}</span></div>{{end}}
+  {{if .Invoice.Fee}}<div class="row"><span>Fee</span><span>{{idr .Invoice.Fee}}</span></div>{{end}}
+  <div class="row b"><span>{{if .IsCreditNote}}REFUND{{else}}TOTAL{{end}}</span><span>{{idr .Invoice.TotalAmount}}</span></div>
+  <div class="row"><span>Paid by</span><span>{{if .Invoice.MethodCode}}{{.Invoice.MethodCode}}{{else}}-{{end}}</span></div>
+  <hr>
+  <div class="c">Thank you</div>
+  <p class="no-print c"><button onclick="window.print()">Print</button></p>
+</body>
+</html>

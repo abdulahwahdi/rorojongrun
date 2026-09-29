@@ -2,11 +2,50 @@
 
 package common
 
+import (
+	"context"
+	"time"
+
+	shareddomain "monorepo/services/order/pkg/shared/domain"
+)
+
 var commonUC Usecase
 
-// Usecase common abstraction for bridging shared method inter usecase in module
+// Usecase common abstraction for bridging shared method inter usecase in module.
+// Every method that writes must run inside the caller's RepoSQL.WithTransaction.
 type Usecase interface {
-	// shared method from another usecase
+	// merchant module
+	// MerchantSettings returns the settings of a merchant, falling back to the default merchant row
+	MerchantSettings(ctx context.Context, merchantID string) (shareddomain.MerchantSetting, error)
+	// NextOrderNumber hands out the next order number of a merchant for the day of at
+	NextOrderNumber(ctx context.Context, m shareddomain.MerchantSetting, at time.Time) (string, error)
+	// NextInvoiceNumber hands out the next invoice or credit note number of a merchant for the month of at
+	NextInvoiceNumber(ctx context.Context, m shareddomain.MerchantSetting, invoiceType string, at time.Time) (string, error)
+
+	// invoice module
+	// IssueInvoice issues the invoice of a paid order, once; a second call returns the existing one
+	IssueInvoice(ctx context.Context, order *shareddomain.Order) (shareddomain.Invoice, error)
+	// IssueCreditNote reverses the invoice of an order, once; ok=false when the order has no invoice
+	IssueCreditNote(ctx context.Context, order *shareddomain.Order) (note shareddomain.Invoice, ok bool, err error)
+	// InvoicesOfOrder lists the invoice and credit note of an order
+	InvoicesOfOrder(ctx context.Context, orderID int64) ([]shareddomain.Invoice, error)
+
+	// shift module
+	// AttachCashSale lands a paid cash order in its cashier's open shift (sets order.ShiftID, nil when none)
+	AttachCashSale(ctx context.Context, order *shareddomain.Order) error
+	// AttachCashRefund takes the refund of a cash order out of the refunding cashier's open shift
+	AttachCashRefund(ctx context.Context, order *shareddomain.Order, cashierID string) error
+
+	// order module
+	// ResolveDates turns the DateFrom / DateTo strings of a filter into times in the merchant's timezone
+	ResolveDates(ctx context.Context, merchantID string, r *shareddomain.DateRange) (tz string, err error)
+	// Enqueue writes an event to the outbox, published after commit
+	Enqueue(ctx context.Context, eventType, key string, payload any) error
+	// LogActivity records a change in the activity service's audit trail (through the outbox, so it
+	// exists if and only if the change committed). referenceID is the order number, job id, etc.
+	LogActivity(ctx context.Context, entry shareddomain.Activity) error
+	// KickOutbox publishes the outbox right away; call after the commit of a change that enqueued events
+	KickOutbox()
 }
 
 // SetCommonUsecase constructor

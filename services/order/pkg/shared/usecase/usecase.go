@@ -6,7 +6,11 @@ import (
 	"sync"
 
 	// @candi:usecaseImport
+	exportusecase "monorepo/services/order/internal/modules/export/usecase"
+	invoiceusecase "monorepo/services/order/internal/modules/invoice/usecase"
+	merchantusecase "monorepo/services/order/internal/modules/merchant/usecase"
 	orderusecase "monorepo/services/order/internal/modules/order/usecase"
+	shiftusecase "monorepo/services/order/internal/modules/shift/usecase"
 	"monorepo/services/order/pkg/shared/usecase/common"
 
 	"github.com/golangid/candi/codebase/factory/dependency"
@@ -17,11 +21,19 @@ type (
 	Usecase interface {
 		// @candi:usecaseMethod
 		Order() orderusecase.OrderUsecase
+		Invoice() invoiceusecase.InvoiceUsecase
+		Merchant() merchantusecase.MerchantUsecase
+		Shift() shiftusecase.ShiftUsecase
+		Export() exportusecase.ExportUsecase
 	}
 
 	usecaseUow struct {
 		// @candi:usecaseField
 		orderusecase.OrderUsecase
+		invoiceusecase.InvoiceUsecase
+		merchantusecase.MerchantUsecase
+		shiftusecase.ShiftUsecase
+		exportusecase.ExportUsecase
 	}
 )
 
@@ -37,6 +49,14 @@ func SetSharedUsecase(deps dependency.Dependency) {
 
 		// @candi:usecaseCommon
 		usecaseInst.OrderUsecase, setSharedUsecaseFunc = orderusecase.NewOrderUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.InvoiceUsecase, setSharedUsecaseFunc = invoiceusecase.NewInvoiceUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.MerchantUsecase, setSharedUsecaseFunc = merchantusecase.NewMerchantUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.ShiftUsecase, setSharedUsecaseFunc = shiftusecase.NewShiftUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.ExportUsecase, setSharedUsecaseFunc = exportusecase.NewExportUsecase(deps)
 		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
 
 		sharedUsecase := common.SetCommonUsecase(usecaseInst)
@@ -54,4 +74,20 @@ func GetSharedUsecase() Usecase {
 // @candi:usecaseImplementation
 func (uc *usecaseUow) Order() orderusecase.OrderUsecase {
 	return uc.OrderUsecase
+}
+
+func (uc *usecaseUow) Invoice() invoiceusecase.InvoiceUsecase {
+	return uc.InvoiceUsecase
+}
+
+func (uc *usecaseUow) Merchant() merchantusecase.MerchantUsecase {
+	return uc.MerchantUsecase
+}
+
+func (uc *usecaseUow) Shift() shiftusecase.ShiftUsecase {
+	return uc.ShiftUsecase
+}
+
+func (uc *usecaseUow) Export() exportusecase.ExportUsecase {
+	return uc.ExportUsecase
 }
