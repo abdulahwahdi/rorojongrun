@@ -1,16 +1,22 @@
 package domain
 
 import (
-	"go.mongodb.org/mongo-driver/v2/bson"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-// Activity model
+// Activity model — an audit/activity log entry written by any service
 type Activity struct {
-	ID        bson.ObjectID `sql:"id" bson:"_id" json:"id"`
-	Field     string        `sql:"field" bson:"field" json:"field"`
-	CreatedAt time.Time     `sql:"created_at" bson:"created_at" json:"created_at"`
-	UpdatedAt time.Time     `sql:"updated_at" bson:"updated_at" json:"updated_at"`
+	ID          bson.ObjectID  `bson:"_id" json:"id"`
+	ServiceName string         `bson:"service_name" json:"serviceName"`
+	EventType   string         `bson:"event_type" json:"eventType"`
+	ReferenceID string         `bson:"reference_id" json:"referenceId"`
+	ActorID     string         `bson:"actor_id,omitempty" json:"actorId,omitempty"`
+	Message     string         `bson:"message,omitempty" json:"message,omitempty"`
+	Metadata    map[string]any `bson:"metadata,omitempty" json:"metadata,omitempty"`
+	CreatedAt   time.Time      `bson:"created_at" json:"createdAt"`
+	UpdatedAt   time.Time      `bson:"updated_at" json:"updatedAt"`
 }
 
 // CollectionName return collection name of Activity model

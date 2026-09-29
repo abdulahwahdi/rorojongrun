@@ -12,6 +12,13 @@ import (
 	service "monorepo/services/activity/internal"
 )
 
+// @title						Activity Service API
+// @version					1.0
+// @description				Audit/activity log service — save and query activity log entries.
+// @BasePath					/
+// @securityDefinitions.apikey	ApiKeyAuth
+// @in							header
+// @name						Authorization
 func main() {
 	const serviceName = "activity"
 

@@ -1,0 +1,30 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for save activity log",
+	"type": "object",
+	"properties": {
+		"serviceName": {
+			"type": "string",
+			"minLength": 1
+		},
+		"eventType": {
+			"type": "string",
+			"minLength": 1
+		},
+		"referenceId": {
+			"type": "string",
+			"minLength": 1
+		},
+		"actorId": {
+			"type": "string"
+		},
+		"message": {
+			"type": "string"
+		},
+		"metadata": {
+			"type": "object"
+		}
+	},
+	"required": [ "serviceName", "eventType", "referenceId" ],
+	"additionalProperties": false
+}
