@@ -1,0 +1,15 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for get all menu",
+	"type": "object",
+	"properties": {
+		"page": { "type": "number", "default": 1, "minimum": 0 },
+		"limit": { "type": "number", "default": 10, "minimum": 1 },
+		"orderBy": { "type": "string", "enum": ["", "id", "key", "label", "sort_order", "created_at"] },
+		"sort": { "type": "string", "enum": ["", "asc", "desc", "ASC", "DESC"] },
+		"search": { "type": "string" },
+		"parentId": { "type": ["integer", "null"] },
+		"tree": { "type": "boolean" }
+	},
+	"additionalProperties": true
+}

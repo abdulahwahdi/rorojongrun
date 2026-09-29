@@ -8,6 +8,11 @@ import (
 	"fmt"
 
 	// @candi:repositoryImport
+	authrepo "monorepo/services/user/internal/modules/auth/repository"
+	clientrepo "monorepo/services/user/internal/modules/client/repository"
+	menurepo "monorepo/services/user/internal/modules/menu/repository"
+	rbacrepo "monorepo/services/user/internal/modules/rbac/repository"
+	realmrepo "monorepo/services/user/internal/modules/realm/repository"
 	userrepo "monorepo/services/user/internal/modules/user/repository"
 
 	"github.com/golangid/candi/candishared"
@@ -26,6 +31,13 @@ type (
 
 		// @candi:repositoryMethod
 		UserRepo() userrepo.UserRepository
+		RealmRepo() realmrepo.RealmRepository
+		RealmKeyRepo() realmrepo.RealmKeyRepository
+		RoleRepo() rbacrepo.RoleRepository
+		PermissionRepo() rbacrepo.PermissionRepository
+		MenuRepo() menurepo.MenuRepository
+		ClientRepo() clientrepo.ClientRepository
+		SessionRepo() authrepo.SessionRepository
 	}
 
 	repoSQLImpl struct {
@@ -33,7 +45,14 @@ type (
 
 		// register all repository from modules
 		// @candi:repositoryField
-		userRepo userrepo.UserRepository
+		userRepo       userrepo.UserRepository
+		realmRepo      realmrepo.RealmRepository
+		realmKeyRepo   realmrepo.RealmKeyRepository
+		roleRepo       rbacrepo.RoleRepository
+		permissionRepo rbacrepo.PermissionRepository
+		menuRepo       menurepo.MenuRepository
+		clientRepo     clientrepo.ClientRepository
+		sessionRepo    authrepo.SessionRepository
 	}
 )
 
@@ -75,7 +94,14 @@ func NewRepositorySQL(readDB, writeDB *gorm.DB) RepoSQL {
 		readDB: readDB, writeDB: writeDB,
 
 		// @candi:repositoryConstructor
-		userRepo: userrepo.NewUserRepoSQL(readDB, writeDB),
+		userRepo:       userrepo.NewUserRepoSQL(readDB, writeDB),
+		realmRepo:      realmrepo.NewRealmRepoSQL(readDB, writeDB),
+		realmKeyRepo:   realmrepo.NewRealmKeyRepoSQL(readDB, writeDB),
+		roleRepo:       rbacrepo.NewRoleRepoSQL(readDB, writeDB),
+		permissionRepo: rbacrepo.NewPermissionRepoSQL(readDB, writeDB),
+		menuRepo:       menurepo.NewMenuRepoSQL(readDB, writeDB),
+		clientRepo:     clientrepo.NewClientRepoSQL(readDB, writeDB),
+		sessionRepo:    authrepo.NewSessionRepoSQL(readDB, writeDB),
 	}
 }
 
@@ -127,4 +153,32 @@ func (r *repoSQLImpl) WithTransaction(ctx context.Context, txFunc func(ctx conte
 // @candi:repositoryImplementation
 func (r *repoSQLImpl) UserRepo() userrepo.UserRepository {
 	return r.userRepo
+}
+
+func (r *repoSQLImpl) RealmRepo() realmrepo.RealmRepository {
+	return r.realmRepo
+}
+
+func (r *repoSQLImpl) RealmKeyRepo() realmrepo.RealmKeyRepository {
+	return r.realmKeyRepo
+}
+
+func (r *repoSQLImpl) RoleRepo() rbacrepo.RoleRepository {
+	return r.roleRepo
+}
+
+func (r *repoSQLImpl) PermissionRepo() rbacrepo.PermissionRepository {
+	return r.permissionRepo
+}
+
+func (r *repoSQLImpl) MenuRepo() menurepo.MenuRepository {
+	return r.menuRepo
+}
+
+func (r *repoSQLImpl) ClientRepo() clientrepo.ClientRepository {
+	return r.clientRepo
+}
+
+func (r *repoSQLImpl) SessionRepo() authrepo.SessionRepository {
+	return r.sessionRepo
 }

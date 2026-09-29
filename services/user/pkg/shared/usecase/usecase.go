@@ -6,6 +6,11 @@ import (
 	"sync"
 
 	// @candi:usecaseImport
+	authusecase "monorepo/services/user/internal/modules/auth/usecase"
+	clientusecase "monorepo/services/user/internal/modules/client/usecase"
+	menuusecase "monorepo/services/user/internal/modules/menu/usecase"
+	rbacusecase "monorepo/services/user/internal/modules/rbac/usecase"
+	realmusecase "monorepo/services/user/internal/modules/realm/usecase"
 	userusecase "monorepo/services/user/internal/modules/user/usecase"
 	"monorepo/services/user/pkg/shared/usecase/common"
 
@@ -17,11 +22,21 @@ type (
 	Usecase interface {
 		// @candi:usecaseMethod
 		User() userusecase.UserUsecase
+		Realm() realmusecase.RealmUsecase
+		Rbac() rbacusecase.RbacUsecase
+		Menu() menuusecase.MenuUsecase
+		Client() clientusecase.ClientUsecase
+		Auth() authusecase.AuthUsecase
 	}
 
 	usecaseUow struct {
 		// @candi:usecaseField
 		userusecase.UserUsecase
+		realmusecase.RealmUsecase
+		rbacusecase.RbacUsecase
+		menuusecase.MenuUsecase
+		clientusecase.ClientUsecase
+		authusecase.AuthUsecase
 	}
 )
 
@@ -37,6 +52,17 @@ func SetSharedUsecase(deps dependency.Dependency) {
 
 		// @candi:usecaseCommon
 		usecaseInst.UserUsecase, setSharedUsecaseFunc = userusecase.NewUserUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.RealmUsecase, setSharedUsecaseFunc = realmusecase.NewRealmUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.RbacUsecase, setSharedUsecaseFunc = rbacusecase.NewRbacUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.MenuUsecase, setSharedUsecaseFunc = menuusecase.NewMenuUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.ClientUsecase, setSharedUsecaseFunc = clientusecase.NewClientUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.AuthUsecase, setSharedUsecaseFunc = authusecase.NewAuthUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
 		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
 
 		sharedUsecase := common.SetCommonUsecase(usecaseInst)
@@ -54,4 +80,24 @@ func GetSharedUsecase() Usecase {
 // @candi:usecaseImplementation
 func (uc *usecaseUow) User() userusecase.UserUsecase {
 	return uc.UserUsecase
+}
+
+func (uc *usecaseUow) Realm() realmusecase.RealmUsecase {
+	return uc.RealmUsecase
+}
+
+func (uc *usecaseUow) Rbac() rbacusecase.RbacUsecase {
+	return uc.RbacUsecase
+}
+
+func (uc *usecaseUow) Menu() menuusecase.MenuUsecase {
+	return uc.MenuUsecase
+}
+
+func (uc *usecaseUow) Client() clientusecase.ClientUsecase {
+	return uc.ClientUsecase
+}
+
+func (uc *usecaseUow) Auth() authusecase.AuthUsecase {
+	return uc.AuthUsecase
 }

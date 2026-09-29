@@ -1,0 +1,16 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for get all permission",
+	"type": "object",
+	"properties": {
+		"page": { "type": "number", "default": 1, "minimum": 0 },
+		"limit": { "type": "number", "default": 10, "minimum": 1 },
+		"sort": { "type": "string", "enum": ["", "asc", "desc", "ASC", "DESC"] },
+		"search": { "type": "string" },
+		"orderBy": { "type": "string", "enum": ["", "id", "service", "code", "created_at", "updated_at"] },
+		"service": { "type": "string" },
+		"code": { "type": "string" },
+		"type": { "type": "string", "enum": ["", "api", "ui"] }
+	},
+	"additionalProperties": true
+}

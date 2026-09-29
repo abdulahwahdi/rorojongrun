@@ -1,0 +1,19 @@
+{
+	"$schema": "http://json-schema.org/draft-07/schema",
+	"title": "JSON Schema for get all user",
+	"type": "object",
+	"properties": {
+		"page": { "type": "number", "default": 1, "minimum": 0 },
+		"limit": { "type": "number", "default": 10, "minimum": 1 },
+		"orderBy": { "type": "string", "enum": ["", "id", "username", "email", "created_at", "updated_at"] },
+		"sort": { "type": "string", "enum": ["", "asc", "desc", "ASC", "DESC"] },
+		"search": { "type": "string" },
+		"username": { "type": "string" },
+		"email": { "type": "string" },
+		"phone": { "type": "string" },
+		"status": { "type": "string", "enum": ["", "active", "disabled", "locked"] },
+		"role": { "type": "string" },
+		"includeServiceAccounts": { "type": "boolean" }
+	},
+	"additionalProperties": true
+}

@@ -1,0 +1,74 @@
+# RealmModule Resolver Area
+type RealmQueryResolver {
+	getAllRealm(filter: FilterListInputResolver): RealmListResolver! @permissionACL(permissionCode: getAllRealm)
+	getDetailRealm(name: String!): RealmResolver! @permissionACL(permissionCode: getDetailRealm)
+	getAllRealmKey(realm: String!, filter: FilterListInputResolver): RealmKeyListResolver! @permissionACL(permissionCode: getAllRealmKey)
+	getDetailRealmKey(realm: String!, id: Int!): RealmKeyResolver! @permissionACL(permissionCode: getDetailRealmKey)
+}
+
+type RealmMutationResolver {
+	createRealm(data: RealmInputResolver!): RealmResolver! @permissionACL(permissionCode: createRealm)
+	updateRealm(name: String!, data: RealmUpdateInputResolver!): String! @permissionACL(permissionCode: updateRealm)
+	deleteRealm(name: String!): String! @permissionACL(permissionCode: deleteRealm)
+	rotateRealmKey(realm: String!): RealmKeyResolver! @permissionACL(permissionCode: rotateRealmKey)
+	updateRealmKey(realm: String!, id: Int!, data: RealmKeyInputResolver!): String! @permissionACL(permissionCode: updateRealmKey)
+	deleteRealmKey(realm: String!, id: Int!): String! @permissionACL(permissionCode: deleteRealmKey)
+}
+
+type RealmListResolver {
+	meta: MetaResolver!
+	data: [RealmResolver!]!
+}
+
+type RealmResolver {
+	id: Int!
+	name: String!
+	displayName: String!
+	enabled: Boolean!
+	accessTokenTtlSec: Int!
+	refreshTokenTtlSec: Int!
+	maxFailedAttempts: Int!
+	lockoutSec: Int!
+	otpLoginEnabled: Boolean!
+	createdAt: String!
+	updatedAt: String!
+}
+
+input RealmInputResolver {
+	name: String!
+	displayName: String
+	enabled: Boolean
+	accessTokenTtlSec: Int
+	refreshTokenTtlSec: Int
+	maxFailedAttempts: Int
+	lockoutSec: Int
+	otpLoginEnabled: Boolean
+}
+
+input RealmUpdateInputResolver {
+	displayName: String
+	enabled: Boolean
+	accessTokenTtlSec: Int
+	refreshTokenTtlSec: Int
+	maxFailedAttempts: Int
+	lockoutSec: Int
+	otpLoginEnabled: Boolean
+}
+
+type RealmKeyListResolver {
+	meta: MetaResolver!
+	data: [RealmKeyResolver!]!
+}
+
+type RealmKeyResolver {
+	id: Int!
+	kid: String!
+	algorithm: String!
+	publicKeyPem: String!
+	active: Boolean!
+	createdAt: String!
+}
+
+input RealmKeyInputResolver {
+	active: Boolean!
+}

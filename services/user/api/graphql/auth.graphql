@@ -1,0 +1,56 @@
+# AuthModule Resolver Area
+type AuthQueryResolver {
+	getMe(realm: String!): MeResolver!
+	getMyPermissions(realm: String!, clientId: String): MyPermissionsResolver!
+	getMySessions(realm: String!, filter: FilterListInputResolver): SessionListResolver!
+	getAllSession(realm: String!, filter: FilterListInputResolver): SessionListResolver! @permissionACL(permissionCode: getAllSession)
+	getDetailSession(realm: String!, id: Int!): SessionResolver! @permissionACL(permissionCode: getDetailSession)
+}
+
+type AuthMutationResolver {
+	logout(realm: String!): String!
+	revokeMySession(realm: String!, id: Int!): String!
+	revokeSession(realm: String!, id: Int!): String! @permissionACL(permissionCode: revokeSession)
+	revokeUserSessions(realm: String!, userId: Int!): String! @permissionACL(permissionCode: revokeUserSessions)
+}
+
+type MeResolver {
+	id: Int!
+	realm: String!
+	username: String!
+	email: String!
+	phone: String!
+	fullName: String!
+	isServiceAccount: Boolean!
+	roles: [String!]!
+}
+
+type PermissionRefResolver {
+	service: String!
+	code: String!
+	type: String!
+}
+
+type MyPermissionsResolver {
+	realm: String!
+	roles: [String!]!
+	permissions: [PermissionRefResolver!]!
+	menus: [MenuResolver!]!
+}
+
+type SessionListResolver {
+	meta: MetaResolver!
+	data: [SessionResolver!]!
+}
+
+type SessionResolver {
+	id: Int!
+	userId: Int!
+	clientId: Int!
+	familyId: Int!
+	ip: String!
+	userAgent: String!
+	active: Boolean!
+	expiresAt: String!
+	createdAt: String!
+}
