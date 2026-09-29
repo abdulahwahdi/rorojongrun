@@ -49,6 +49,11 @@ func Test_CreatePayment(t *testing.T) {
 		assert.Equal(t, "order", ev.Source)
 		assert.Equal(t, "ORD-1", ev.ReferenceID)
 		assert.EqualValues(t, 50000, ev.Amount)
+		assert.Equal(t, "Order ORD-1", ev.Description)
+		assert.Equal(t, shareddomain.Customer{Name: "Budi", Email: "budi@example.com"}, ev.Customer)
+		assert.Equal(t, []shareddomain.Item{{Name: "Nasi", Price: 50000, Quantity: 1}}, ev.Items, "every event is a full snapshot")
+		assert.True(t, ev.OccurredAt.Equal(h.now), "occurredAt comes from the usecase clock")
+		assert.Equal(t, time.UTC, ev.OccurredAt.Location())
 		assert.Equal(t, 1, h.kicks, "outbox flush is triggered after commit")
 	})
 

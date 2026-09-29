@@ -23,10 +23,13 @@ func (uc *paymentUsecaseImpl) paymentURL(p *shareddomain.Payment) string {
 
 func (uc *paymentUsecaseImpl) paymentEvent(event string, p *shareddomain.Payment, txn *shareddomain.Transaction) domain.PaymentEvent {
 	ev := domain.PaymentEvent{
-		Event: event, PaymentID: p.ID, Source: p.Source, ReferenceID: p.ReferenceID, Status: p.Status,
-		Amount: p.Amount, Fee: p.Fee, TotalAmount: p.TotalAmount, Currency: p.Currency, MethodCode: p.MethodCode,
-		PaidAt: utcPtr(p.PaidAt), ExpiresAt: p.ExpiresAt.UTC(), Metadata: decodeMap(p.Metadata),
+		Event: event, PaymentID: p.ID, Source: p.Source, ReferenceID: p.ReferenceID, Description: p.Description,
+		Status: p.Status, Amount: p.Amount, Fee: p.Fee, TotalAmount: p.TotalAmount, Currency: p.Currency,
+		MethodCode: p.MethodCode, PaidAt: utcPtr(p.PaidAt), ExpiresAt: p.ExpiresAt.UTC(), Metadata: decodeMap(p.Metadata),
+		Items: []shareddomain.Item{}, CreatedAt: p.CreatedAt.UTC(), OccurredAt: uc.now().UTC(),
 	}
+	_ = p.Customer.Decode(&ev.Customer)
+	_ = p.Items.Decode(&ev.Items)
 	if txn != nil {
 		ev.TransactionID, ev.MethodCode, ev.GatewayCode = txn.ID, txn.MethodCode, txn.GatewayCode
 		ev.Fee, ev.TotalAmount = txn.Amount-p.Amount, txn.Amount

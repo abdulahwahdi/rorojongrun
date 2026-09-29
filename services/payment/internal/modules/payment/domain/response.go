@@ -112,6 +112,7 @@ type PaymentEvent struct {
 	TransactionID string         `json:"transactionId,omitempty"`
 	Source        string         `json:"source"`
 	ReferenceID   string         `json:"referenceId"`
+	Description   string         `json:"description,omitempty"`
 	Status        string         `json:"status"`
 	Amount        int64          `json:"amount"`
 	Fee           int64          `json:"fee"`
@@ -122,6 +123,13 @@ type PaymentEvent struct {
 	PaidAt        *time.Time     `json:"paidAt,omitempty"`
 	ExpiresAt     time.Time      `json:"expiresAt"`
 	Metadata      map[string]any `json:"metadata,omitempty"`
+	// Customer and Items make every event a full snapshot of the payment, so a consumer that
+	// sees a later event first (they travel on different topics) still has everything.
+	Customer shareddomain.Customer `json:"customer"`
+	Items    []shareddomain.Item   `json:"items"`
+	// CreatedAt is when the payment was created, OccurredAt when the change this event describes happened
+	CreatedAt  time.Time `json:"createdAt"`
+	OccurredAt time.Time `json:"occurredAt"`
 }
 
 // NotificationRequest mirrors notification.requested's payload (sdk/notification.SendNotificationRequest)
