@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["topic", "direction"],
+  "properties": {
+    "topic": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "direction": { "type": "string", "enum": ["consume", "publish"] },
+    "gatewayCode": { "type": "string", "maxLength": 50 },
+    "eventType": { "type": "string", "maxLength": 50 },
+    "isEnabled": { "type": "boolean" }
+  },
+  "additionalProperties": false
+}

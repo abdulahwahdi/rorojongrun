@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["code", "name", "type"],
+  "properties": {
+    "code": { "type": "string", "minLength": 2, "maxLength": 50 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+    "type": { "type": "string", "enum": ["virtual_account", "qris", "ewallet", "card", "retail", "cash"] },
+    "gatewayCode": { "type": "string", "maxLength": 50 },
+    "gatewayChannel": { "type": "string", "maxLength": 50 },
+    "isEnabled": { "type": "boolean" },
+    "iconUrl": { "type": "string", "maxLength": 500 },
+    "sortOrder": { "type": "integer" },
+    "minAmount": { "type": "integer", "minimum": 0 },
+    "maxAmount": { "type": "integer", "minimum": 0 },
+    "feeFlat": { "type": "integer", "minimum": 0 },
+    "feePercent": { "type": "number", "minimum": 0, "maximum": 100 },
+    "instructions": { "type": "string", "maxLength": 5000 }
+  },
+  "additionalProperties": false
+}

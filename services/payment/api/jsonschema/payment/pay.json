@@ -1,0 +1,8 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "methodCode": { "type": "string", "maxLength": 50 }
+  },
+  "additionalProperties": false
+}

@@ -8,7 +8,10 @@ import (
 	"fmt"
 
 	// @candi:repositoryImport
+	gatewayrepo "monorepo/services/payment/internal/modules/gateway/repository"
+	methodrepo "monorepo/services/payment/internal/modules/method/repository"
 	paymentrepo "monorepo/services/payment/internal/modules/payment/repository"
+	topicrepo "monorepo/services/payment/internal/modules/topic/repository"
 
 	"github.com/golangid/candi/candishared"
 	"github.com/golangid/candi/tracer"
@@ -26,6 +29,9 @@ type (
 
 		// @candi:repositoryMethod
 		PaymentRepo() paymentrepo.PaymentRepository
+		TopicRepo() topicrepo.TopicRepository
+		MethodRepo() methodrepo.MethodRepository
+		GatewayRepo() gatewayrepo.GatewayRepository
 	}
 
 	repoSQLImpl struct {
@@ -34,6 +40,9 @@ type (
 		// register all repository from modules
 		// @candi:repositoryField
 		paymentRepo paymentrepo.PaymentRepository
+		topicRepo   topicrepo.TopicRepository
+		methodRepo  methodrepo.MethodRepository
+		gatewayRepo gatewayrepo.GatewayRepository
 	}
 )
 
@@ -76,6 +85,9 @@ func NewRepositorySQL(readDB, writeDB *gorm.DB) RepoSQL {
 
 		// @candi:repositoryConstructor
 		paymentRepo: paymentrepo.NewPaymentRepoSQL(readDB, writeDB),
+		topicRepo:   topicrepo.NewTopicRepoSQL(readDB, writeDB),
+		methodRepo:  methodrepo.NewMethodRepoSQL(readDB, writeDB),
+		gatewayRepo: gatewayrepo.NewGatewayRepoSQL(readDB, writeDB),
 	}
 }
 
@@ -127,4 +139,16 @@ func (r *repoSQLImpl) WithTransaction(ctx context.Context, txFunc func(ctx conte
 // @candi:repositoryImplementation
 func (r *repoSQLImpl) PaymentRepo() paymentrepo.PaymentRepository {
 	return r.paymentRepo
+}
+
+func (r *repoSQLImpl) TopicRepo() topicrepo.TopicRepository {
+	return r.topicRepo
+}
+
+func (r *repoSQLImpl) MethodRepo() methodrepo.MethodRepository {
+	return r.methodRepo
+}
+
+func (r *repoSQLImpl) GatewayRepo() gatewayrepo.GatewayRepository {
+	return r.gatewayRepo
 }

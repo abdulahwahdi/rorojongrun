@@ -3,9 +3,14 @@
 package payment
 
 import (
+	"monorepo/services/payment/internal/modules/gateway"
+	"monorepo/services/payment/internal/modules/method"
 	"monorepo/services/payment/internal/modules/payment"
+	"monorepo/services/payment/internal/modules/topic"
 
 	"monorepo/services/payment/configs"
+	"monorepo/services/payment/internal/modules/payment/delivery/workerhandler"
+	"monorepo/services/payment/pkg/shared"
 
 	"github.com/golangid/candi/codebase/factory"
 	"github.com/golangid/candi/codebase/factory/dependency"
@@ -28,6 +33,9 @@ func NewService(cfg *config.Config) factory.ServiceFactory {
 
 	modules := []factory.ModuleFactory{
 		payment.NewModule(deps),
+		gateway.NewModule(deps),
+		method.NewModule(deps),
+		topic.NewModule(deps),
 	}
 
 	s := &Service{
@@ -38,6 +46,11 @@ func NewService(cfg *config.Config) factory.ServiceFactory {
 	}
 
 	s.applications = configs.InitAppFromEnvironmentConfig(s)
+
+	// gateway callbacks: Kafka topics are read from the DB and hot-reloaded (see the payment module's workerhandler)
+	if shared.GetEnv().UseCallbackConsumer {
+		s.applications = append(s.applications, workerhandler.NewCallbackConsumer(s))
+	}
 
 	// Add custom application runner, must implement `factory.AppServerFactory` methods
 	s.applications = append(s.applications, []factory.AppServerFactory{

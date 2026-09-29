@@ -13,7 +13,7 @@
      "GraphQLHandler": false,
      "FiberRestHandler": false,
      "KafkaHandler": true,
-     "SchedulerHandler": false,
+     "SchedulerHandler": true,
      "RedisSubsHandler": false,
      "TaskQueueHandler": false,
      "PostgresListenerHandler": false,
@@ -28,7 +28,16 @@
      "WorkerPlugins": null,
      "Modules": [
           {
+               "ModuleName": "gateway"
+          },
+          {
+               "ModuleName": "method"
+          },
+          {
                "ModuleName": "payment"
+          },
+          {
+               "ModuleName": "topic"
           }
      ]
 }

@@ -6,7 +6,10 @@ import (
 	"sync"
 
 	// @candi:usecaseImport
+	gatewayusecase "monorepo/services/payment/internal/modules/gateway/usecase"
+	methodusecase "monorepo/services/payment/internal/modules/method/usecase"
 	paymentusecase "monorepo/services/payment/internal/modules/payment/usecase"
+	topicusecase "monorepo/services/payment/internal/modules/topic/usecase"
 	"monorepo/services/payment/pkg/shared/usecase/common"
 
 	"github.com/golangid/candi/codebase/factory/dependency"
@@ -17,11 +20,17 @@ type (
 	Usecase interface {
 		// @candi:usecaseMethod
 		Payment() paymentusecase.PaymentUsecase
+		Topic() topicusecase.TopicUsecase
+		Method() methodusecase.MethodUsecase
+		Gateway() gatewayusecase.GatewayUsecase
 	}
 
 	usecaseUow struct {
 		// @candi:usecaseField
 		paymentusecase.PaymentUsecase
+		topicusecase.TopicUsecase
+		methodusecase.MethodUsecase
+		gatewayusecase.GatewayUsecase
 	}
 )
 
@@ -37,6 +46,12 @@ func SetSharedUsecase(deps dependency.Dependency) {
 
 		// @candi:usecaseCommon
 		usecaseInst.PaymentUsecase, setSharedUsecaseFunc = paymentusecase.NewPaymentUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.TopicUsecase, setSharedUsecaseFunc = topicusecase.NewTopicUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.MethodUsecase, setSharedUsecaseFunc = methodusecase.NewMethodUsecase(deps)
+		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
+		usecaseInst.GatewayUsecase, setSharedUsecaseFunc = gatewayusecase.NewGatewayUsecase(deps)
 		setSharedUsecaseFuncs = append(setSharedUsecaseFuncs, setSharedUsecaseFunc)
 
 		sharedUsecase := common.SetCommonUsecase(usecaseInst)
@@ -54,4 +69,16 @@ func GetSharedUsecase() Usecase {
 // @candi:usecaseImplementation
 func (uc *usecaseUow) Payment() paymentusecase.PaymentUsecase {
 	return uc.PaymentUsecase
+}
+
+func (uc *usecaseUow) Topic() topicusecase.TopicUsecase {
+	return uc.TopicUsecase
+}
+
+func (uc *usecaseUow) Method() methodusecase.MethodUsecase {
+	return uc.MethodUsecase
+}
+
+func (uc *usecaseUow) Gateway() gatewayusecase.GatewayUsecase {
+	return uc.GatewayUsecase
 }

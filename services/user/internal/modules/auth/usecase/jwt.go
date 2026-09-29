@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"monorepo/globalshared/auth"
+	"monorepo/globalshared/crypto"
 	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -33,7 +34,7 @@ func (uc *authUsecaseImpl) signingKey(ctx context.Context, realmID int) (*cached
 	if ok {
 		return c, nil
 	}
-	pem, err := helper.Decrypt(shared.GetEnv().KeyEncryptionSecret, key.PrivateKeyEnc)
+	pem, err := crypto.Decrypt(shared.GetEnv().KeyEncryptionSecret, key.PrivateKeyEnc)
 	if err != nil {
 		return nil, err
 	}
