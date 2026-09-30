@@ -128,6 +128,16 @@ module — always run `-add-module`/`-add-handler` so generated boilerplate
 (interfaces, mocks, DI wiring, module registration) stays in sync with the rest
 of the codebase.
 
+Known quirks of candi v1.20 in this monorepo (hit while generating `order`'s modules):
+- `-add-module` still prompts for the service name even with `-service`; answer it (inputs, in order:
+  service name, module names, server handlers, worker handlers).
+- It needs `services/<name>/internal/modules/` to exist already (its mkdir is not recursive).
+- It does not write the new modules / handler flags back into `candi.json`, nor register them in
+  `internal/service.go`, `pkg/shared/usecase/usecase.go` and `pkg/shared/repository/repository_sql.go`: add
+  those lines under the `// @candi:*` markers the same way candi does, and sync `candi.json` by hand.
+- A service's `.gitignore` must ignore the binary as `/<name>`, not `<name>` — the bare name also ignores
+  `internal/modules/<name>/` (this is why `shipment` and `kitchen` do not build yet).
+
 ## Generated service structure (per service)
 
 ```
@@ -182,12 +192,15 @@ Adjust only with a clear reason (write it down here when you deviate).
   gateway webhooks/callbacks. *Deviation:* the consumer is payment's own `CallbackConsumer` (topics read
   from the DB and hot-reloaded) instead of candi's static Kafka worker, plus the Cron scheduler for
   expiry and the outbox safety-net flush — see "Payments" below
-- **order** — REST/GraphQL for client-facing order creation, Kafka producer/consumer
-  to publish order-state events and consume payment/kitchen/shipment status
+- **order** — REST + Kafka consumer (payment events) + Cron + Task Queue. *Deviations:* GraphQL is off
+  (`USE_GRAPHQL=false`, `"GraphQLHandler": false` in `candi.json`) and there is no client-facing order
+  creation — order is a passive ledger booked from `payment.*` events; it produces its events through a
+  transactional outbox (cron flush) and generates CSV exports on the task queue — see "Orders" below
 - **notification** — Kafka consumer only (fan-out on events from order/payment/
   shipment/kitchen), no public API needed unless there's a notification-preferences REST endpoint
-- **activity** — Kafka consumer (subscribes to domain events from every other
-  service for the audit/history feed) + REST for read/query
+- **activity** — Kafka consumer + REST for read/query. Producers send audit entries on
+  `activity.requested` (same payload as `POST /v1/activity`), like `notification.requested` — activity does
+  not need to understand every producer's events
 - **shipment** — REST/gRPC + Kafka consumer (order created) / producer (delivery
   status changes)
 - **kitchen** — REST/gRPC (merchant app) + Kafka consumer (order created) /
@@ -205,6 +218,11 @@ scope that's true today; widen later if a second consumer actually shows up:
 | One-off stateless helper used in one service | `services/<name>/pkg/helper/` |
 | Multiple **services** (e.g. money formatting, common domain enums, shared middleware) | `globalshared/` (monorepo root) |
 | Another service needs to call this service directly (gRPC/REST client wrapper) | `sdk/` (monorepo root) — generate/expose the client here so callers never hand-roll their own client |
+
+Already in `globalshared` — use these instead of writing your own: `auth` (token validation, ACL checker,
+`SubjectFromContext`), `rest` (business errors → HTTP status, JSON-schema body / query decoding, response
+writers, `Secure`), `gormx` (context transaction + tracing session, row locks, paging, `Like`, the jsonb `JSON`
+type), `crypto` (AES-GCM), `money` (`FormatIDR`).
 
 Rules:
 - `pkg/shared` and `globalshared` are generated targets, not free-form dumping
@@ -278,6 +296,27 @@ cash. Full reference: `services/payment/docs/payment-flow.md`.
 - A new gateway is one `provider.Provider` implementation in `internal/modules/gateway/provider/` (charge,
   cancel, verify-callback) plus a seeded `payment_gateways` row; nothing else in the payment module knows
   which gateway it talks to.
+
+## Orders (order service)
+
+`services/order` is the sales ledger (the prototype books point-of-sale sales). Full reference:
+`services/order/docs/order-ledger.md`.
+
+- **Orders are never created over the API.** Every `payment.*` event creates or updates one order per `paymentId`;
+  events are full snapshots, booked idempotently and in any order (advisory lock per payment, dedupe index,
+  stale events recorded not applied). POS metadata `merchantId` / `outletId` / `cashierId` / `channel` rides on
+  the payment's `metadata`.
+- **Two independent statuses**: `paymentStatus` (from payment, or an admin override) and `orderStatus`
+  (`awaiting_payment` → `confirmed` on paid → `preparing` → `ready` → `completed` → `refunded`, or `cancelled`).
+  Payment only moves an order out of `awaiting_payment`; every later step is manual, versioned (409 on stale).
+- **Everything a sale produces happens in its transaction**: order number (gapless `number_sequences`),
+  invoice / credit note, cash shift attachment, outbox rows. Never publish from a usecase directly —
+  `Enqueue` / `LogActivity` write `order_outbox`.
+- **Per-merchant settings** (`merchant_settings`, `*` = default) drive tax, rounding and prefixes; orders and
+  invoices keep a snapshot. `POST /v1/orders/quote` is the same pricing the ledger records.
+- Modules talk through `pkg/shared/usecase/common.Usecase` (merchant settings & numbering, invoices, shifts,
+  outbox), never by importing each other.
+- Every change is also an audit entry on `activity.requested`.
 
 ## Running services locally
 

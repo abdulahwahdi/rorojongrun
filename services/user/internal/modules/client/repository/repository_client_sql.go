@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 
+	"monorepo/globalshared/gormx"
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/client/domain"
 	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -32,7 +34,7 @@ func (r *clientRepoSQL) filter(db *gorm.DB, realmID int, f *domain.FilterClient)
 		db = db.Where("enabled = ?", *f.Enabled)
 	}
 	if f.Search != "" {
-		db = db.Where("(client_id ILIKE ? OR name ILIKE ?)", helper.Like(f.Search), helper.Like(f.Search))
+		db = db.Where("(client_id ILIKE ? OR name ILIKE ?)", gormx.Like(f.Search), gormx.Like(f.Search))
 	}
 	return db
 }
@@ -41,7 +43,7 @@ func (r *clientRepoSQL) FetchAll(ctx context.Context, realmID int, f *domain.Fil
 	trace, ctx := tracer.StartTraceWithContext(ctx, "ClientRepoSQL:FetchAll")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := helper.ApplyPaging(r.filter(helper.DB(ctx, r.readDB), realmID, f), &f.Filter, "id", "id", "client_id", "name", "created_at", "updated_at")
+	db := gormx.ApplyPaging(r.filter(gormx.DB(ctx, r.readDB), realmID, f), &f.Filter, "id", "id", "client_id", "name", "created_at", "updated_at")
 	err = db.Find(&data).Error
 	return
 }
@@ -51,7 +53,7 @@ func (r *clientRepoSQL) Count(ctx context.Context, realmID int, f *domain.Filter
 	defer trace.Finish()
 
 	var total int64
-	r.filter(helper.DB(ctx, r.readDB), realmID, f).Model(&shareddomain.Client{}).Count(&total)
+	r.filter(gormx.DB(ctx, r.readDB), realmID, f).Model(&shareddomain.Client{}).Count(&total)
 	return int(total)
 }
 
@@ -59,7 +61,7 @@ func (r *clientRepoSQL) Find(ctx context.Context, realmID, id int) (res shareddo
 	trace, ctx := tracer.StartTraceWithContext(ctx, "ClientRepoSQL:Find")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "clients").Where("realm_id = ? AND id = ?", realmID, id).First(&res).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "clients").Where("realm_id = ? AND id = ?", realmID, id).First(&res).Error
 	return
 }
 
@@ -67,7 +69,7 @@ func (r *clientRepoSQL) FindByClientID(ctx context.Context, realmID int, clientI
 	trace, ctx := tracer.StartTraceWithContext(ctx, "ClientRepoSQL:FindByClientID")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "clients").Where("realm_id = ? AND client_id = ?", realmID, clientID).First(&res).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "clients").Where("realm_id = ? AND client_id = ?", realmID, clientID).First(&res).Error
 	return
 }
 
@@ -75,12 +77,12 @@ func (r *clientRepoSQL) Save(ctx context.Context, data *shareddomain.Client) (er
 	trace, ctx := tracer.StartTraceWithContext(ctx, "ClientRepoSQL:Save")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.MapDBError(helper.Save(helper.DB(ctx, r.writeDB), data.ID, data))
+	return rest.MapDBError(helper.Save(gormx.DB(ctx, r.writeDB), data.ID, data))
 }
 
 func (r *clientRepoSQL) Delete(ctx context.Context, id int) (err error) {
 	trace, ctx := tracer.StartTraceWithContext(ctx, "ClientRepoSQL:Delete")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.SoftDelete(helper.DB(ctx, r.writeDB), &shareddomain.Client{}, "id = ?", id)
+	return helper.SoftDelete(gormx.DB(ctx, r.writeDB), &shareddomain.Client{}, "id = ?", id)
 }

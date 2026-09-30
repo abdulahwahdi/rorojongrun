@@ -4,8 +4,8 @@ import (
 	"context"
 	"regexp"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/realm/domain"
-	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
 	"monorepo/services/user/pkg/shared/usecase/common"
 
@@ -56,10 +56,10 @@ func (uc *realmUsecaseImpl) CreateRealm(ctx context.Context, req *domain.Request
 		return
 	}
 	if !realmNamePattern.MatchString(req.Name) {
-		return res, helper.NewInvalid("realm name must be a lowercase slug (a-z, 0-9, '-')")
+		return res, rest.NewInvalid("realm name must be a lowercase slug (a-z, 0-9, '-')")
 	}
 	if _, err = uc.repoSQL.RealmRepo().FindByName(ctx, req.Name); err == nil {
-		return res, helper.NewConflict("realm " + req.Name + " already exists")
+		return res, rest.NewConflict("realm " + req.Name + " already exists")
 	}
 
 	realm := shareddomain.Realm{
@@ -125,7 +125,7 @@ func applyRealmRequest(realm *shareddomain.Realm, req *domain.RequestRealm) erro
 		realm.OTPLoginEnabled = *req.OTPLoginEnabled
 	}
 	if realm.AccessTokenTTLSec <= 0 || realm.RefreshTokenTTLSec < realm.AccessTokenTTLSec {
-		return helper.NewInvalid("refresh token ttl must be >= access token ttl, both positive")
+		return rest.NewInvalid("refresh token ttl must be >= access token ttl, both positive")
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ func (uc *realmUsecaseImpl) UpdateRealm(ctx context.Context, name string, req *d
 		return err
 	}
 	if realm.Name == common.MasterRealm && req.Enabled != nil && !*req.Enabled {
-		return helper.NewInvalid("the master realm cannot be disabled")
+		return rest.NewInvalid("the master realm cannot be disabled")
 	}
 	if err = applyRealmRequest(&realm, req); err != nil {
 		return err
@@ -155,7 +155,7 @@ func (uc *realmUsecaseImpl) DeleteRealm(ctx context.Context, name string) (err e
 		return
 	}
 	if name == common.MasterRealm {
-		return helper.NewInvalid("the master realm cannot be deleted")
+		return rest.NewInvalid("the master realm cannot be deleted")
 	}
 	realm, err := common.LoadRealm(ctx, uc.repoSQL, name)
 	if err != nil {

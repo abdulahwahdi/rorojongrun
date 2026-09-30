@@ -4,6 +4,10 @@ package configs
 
 import (
 	"context"
+	"time"
+
+	"monorepo/globalshared/auth"
+	"monorepo/sdk/user"
 
 	"monorepo/sdk"
 	"monorepo/services/order/api"
@@ -41,8 +45,9 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 		sqlDeps := database.InitSQLDatabase()
 		// mongoDeps := database.InitMongoDB(ctx)
 
+		// permission decisions come from the user service (gRPC), tokens are verified locally through its JWKS
 		sdk.SetGlobalSDK(
-		// init service client sdk
+			sdk.SetUser(user.NewUserServiceGRPC(sharedEnv.UserGRPCHost, sharedEnv.UserBasicAuthKey)),
 		)
 
 		locker := &candiutils.NoopLocker{}
@@ -75,9 +80,14 @@ func LoadServiceConfigs(baseCfg *config.Config) (deps dependency.Dependency) {
 	repository.SetSharedRepository(deps)
 	usecase.SetSharedUsecase(deps)
 
+	// REST tokens are issued by the user service, see services/user/docs/realms-and-rbac.md
+	tokenValidator := auth.NewTokenValidator(sharedEnv.IssuerBaseURL, auth.NewJWKSKeyProvider(sharedEnv.UserHTTPHost))
+	aclChecker := auth.NewACLChecker("order", auth.NewSDKPermissionClient(sdk.GetSDK().User()), 30*time.Second)
+	shared.SetPermissionChecker(aclChecker)
+
 	deps.SetMiddleware(middleware.NewMiddlewareWithOption(
-		middleware.SetTokenValidator(&shared.DefaultMiddleware{}),
-		middleware.SetACLPermissionChecker(&shared.DefaultMiddleware{}),
+		middleware.SetTokenValidator(tokenValidator),
+		middleware.SetACLPermissionChecker(aclChecker),
 		middleware.SetUserIDExtractor(func(tokenClaim *candishared.TokenClaim) (userID string) {
 			return tokenClaim.Subject
 		}),

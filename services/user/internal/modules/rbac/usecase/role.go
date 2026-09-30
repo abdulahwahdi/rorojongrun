@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/rbac/domain"
-	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
 	"monorepo/services/user/pkg/shared/usecase/common"
 
@@ -64,7 +64,7 @@ func (uc *rbacUsecaseImpl) CreateRole(ctx context.Context, realm string, req *do
 		return res, err
 	}
 	if _, err = uc.repoSQL.RoleRepo().FindByName(ctx, r.ID, req.Name); err == nil {
-		return res, helper.NewConflict("role " + req.Name + " already exists in realm " + realm)
+		return res, rest.NewConflict("role " + req.Name + " already exists in realm " + realm)
 	}
 	role := shareddomain.Role{RealmID: r.ID, Name: req.Name, Description: req.Description}
 	if err = uc.repoSQL.RoleRepo().Save(ctx, &role); err != nil {
@@ -87,7 +87,7 @@ func (uc *rbacUsecaseImpl) UpdateRole(ctx context.Context, realm string, id int,
 		return common.NotFound(err, "role")
 	}
 	if existing, findErr := uc.repoSQL.RoleRepo().FindByName(ctx, r.ID, req.Name); findErr == nil && existing.ID != role.ID {
-		return helper.NewConflict("role " + req.Name + " already exists in realm " + realm)
+		return rest.NewConflict("role " + req.Name + " already exists in realm " + realm)
 	}
 	role.Name, role.Description = req.Name, req.Description
 	return uc.repoSQL.RoleRepo().Save(ctx, &role)
@@ -106,7 +106,7 @@ func (uc *rbacUsecaseImpl) DeleteRole(ctx context.Context, realm string, id int,
 		return common.NotFound(err, "role")
 	}
 	if n := uc.repoSQL.RoleRepo().CountUsers(ctx, role.ID); n > 0 && !force {
-		return helper.NewConflict("role is still assigned to users, remove the assignments or pass force=true")
+		return rest.NewConflict("role is still assigned to users, remove the assignments or pass force=true")
 	}
 	return uc.repoSQL.WithTransaction(ctx, func(ctx context.Context) error {
 		return uc.repoSQL.RoleRepo().Delete(ctx, role.ID)
@@ -165,7 +165,7 @@ func (uc *rbacUsecaseImpl) ReplaceRolePermissions(ctx context.Context, realm str
 	}
 	permissionIDs = uniqueInts(permissionIDs)
 	if uc.repoSQL.PermissionRepo().CountByIDs(ctx, r.ID, permissionIDs) != len(permissionIDs) {
-		return helper.NewInvalid("one or more permissions do not exist in realm " + realm)
+		return rest.NewInvalid("one or more permissions do not exist in realm " + realm)
 	}
 	return uc.repoSQL.RoleRepo().ReplacePermissions(ctx, role.ID, permissionIDs)
 }

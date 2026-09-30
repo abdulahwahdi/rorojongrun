@@ -5,6 +5,7 @@ import (
 
 	"monorepo/globalshared/auth"
 	"monorepo/globalshared/crypto"
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/realm/domain"
 	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared"
@@ -131,7 +132,7 @@ func (uc *realmUsecaseImpl) DeleteRealmKey(ctx context.Context, realm string, id
 		return common.NotFound(err, "realm key")
 	}
 	if key.Active {
-		return helper.NewConflict("an active key cannot be deleted, deactivate it first")
+		return rest.NewConflict("an active key cannot be deleted, deactivate it first")
 	}
 	return uc.repoSQL.RealmKeyRepo().Delete(ctx, r.ID, id)
 }
@@ -147,7 +148,7 @@ func (uc *realmUsecaseImpl) ensureAnotherActiveKey(ctx context.Context, realmID,
 			return nil
 		}
 	}
-	return helper.NewConflict("the realm needs at least one active key, rotate first")
+	return rest.NewConflict("the realm needs at least one active key, rotate first")
 }
 
 // GetJWKS is public: it publishes the active public keys of a realm

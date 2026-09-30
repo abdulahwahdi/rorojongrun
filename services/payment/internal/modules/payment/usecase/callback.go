@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"monorepo/globalshared/crypto"
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/gateway/provider"
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/candishared"
@@ -258,13 +258,13 @@ func (uc *paymentUsecaseImpl) ReplayCallback(ctx context.Context, logID int) (ou
 
 	entry, err := uc.repoSQL.PaymentRepo().FindCallbackLogByID(ctx, logID)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return out, helper.NewNotFound("callback log not found")
+		return out, rest.NewNotFound("callback log not found")
 	}
 	if err != nil {
 		return out, err
 	}
 	if entry.Status == shareddomain.CallbackProcessed {
-		return out, helper.NewConflict("this callback was already processed")
+		return out, rest.NewConflict("this callback was already processed")
 	}
 	return uc.HandleCallback(ctx, &domain.CallbackMessage{
 		Topic: entry.Topic, Partition: entry.Partition, Offset: entry.Offset,
@@ -296,7 +296,7 @@ func (uc *paymentUsecaseImpl) GetCallbackLog(ctx context.Context, id int) (res s
 
 	res, err = uc.repoSQL.PaymentRepo().FindCallbackLogByID(ctx, id)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return res, helper.NewNotFound("callback log not found")
+		return res, rest.NewNotFound("callback log not found")
 	}
 	res.Headers = redactHeaders(res.Headers)
 	return res, err
@@ -309,17 +309,17 @@ func (uc *paymentUsecaseImpl) SimulateMockCallback(ctx context.Context, req *dom
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
 	if uc.env().IsProduction() {
-		return helper.NewForbidden("the mock gateway is disabled in production")
+		return rest.NewForbidden("the mock gateway is disabled in production")
 	}
 	if !isValidUUID(req.TransactionID) {
-		return helper.NewNotFound("transaction not found")
+		return rest.NewNotFound("transaction not found")
 	}
 	txn, err := uc.repoSQL.PaymentRepo().FindTransactionByID(ctx, req.TransactionID)
 	if err != nil {
-		return helper.NewNotFound("transaction not found")
+		return rest.NewNotFound("transaction not found")
 	}
 	if txn.GatewayCode != shareddomain.GatewayMock {
-		return helper.NewInvalid("transaction does not belong to the mock gateway")
+		return rest.NewInvalid("transaction does not belong to the mock gateway")
 	}
 
 	row, err := uc.repoSQL.GatewayRepo().FindByCode(ctx, shareddomain.GatewayMock)
@@ -342,7 +342,7 @@ func (uc *paymentUsecaseImpl) SimulateMockCallback(ctx context.Context, req *dom
 		}
 	}
 	if topic == "" {
-		return helper.NewUnavailable("no enabled consume topic for the mock gateway (is the gateway enabled?)")
+		return rest.NewUnavailable("no enabled consume topic for the mock gateway (is the gateway enabled?)")
 	}
 
 	headers := map[string]string{}

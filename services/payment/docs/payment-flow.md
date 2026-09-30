@@ -160,12 +160,21 @@ an event type can fan out to several topics; if no topic is enabled the event is
 Payload of the `payment.*` events (key = payment id):
 
 ```json
-{"event":"payment.checkout_started","paymentId":"…","transactionId":"…","source":"order","referenceId":"ORD-1001",
- "status":"processing","amount":150000,"fee":0,"totalAmount":150000,"currency":"IDR","methodCode":"mock_va",
- "gatewayCode":"mock","paidAt":null,"expiresAt":"2026-09-26T12:07:12Z","metadata":{"orderId":1001}}
+{"event":"payment.checkout_started","paymentId":"…","transactionId":"…","source":"pos","referenceId":"ORD-1001",
+ "description":"Table 4","status":"processing","amount":150000,"fee":0,"totalAmount":150000,"currency":"IDR",
+ "methodCode":"mock_va","gatewayCode":"mock","paidAt":null,"expiresAt":"2026-09-26T12:07:12Z",
+ "metadata":{"merchantId":"M1","outletId":"O1","cashierId":"u-1","channel":"pos"},
+ "customer":{"name":"Budi","email":"budi@example.com"},"items":[{"name":"Kopi","price":75000,"quantity":2}],
+ "createdAt":"2026-09-25T12:07:12Z","occurredAt":"2026-09-25T12:08:40Z"}
 ```
 
-Callers such as `order` filter on `source` and match on `referenceId` / `metadata`.
+Every event is a **full snapshot** of the payment (description, customer, items included): the event types travel on
+different topics, so a consumer may see `payment.completed` before `payment.created` and must be able to build its
+record from whichever arrives first. `occurredAt` is when the change happened, for ordering non-final updates.
+
+Callers filter on `source` and match on `referenceId` / `metadata`. The `order` service records **every** payment as an
+order (see `services/order/docs/order-ledger.md`); the metadata keys `merchantId`, `outletId`, `cashierId` and `channel`
+are what it books the sale under.
 
 ## Customer emails
 

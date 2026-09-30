@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/rbac/domain"
-	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
 	"monorepo/services/user/pkg/shared/usecase/common"
 
@@ -63,7 +63,7 @@ func (uc *rbacUsecaseImpl) CreatePermission(ctx context.Context, realm string, r
 		return res, err
 	}
 	if _, err = uc.repoSQL.PermissionRepo().FindByServiceCode(ctx, r.ID, req.Service, req.Code); err == nil {
-		return res, helper.NewConflict("permission " + req.Service + ":" + req.Code + " already exists in realm " + realm)
+		return res, rest.NewConflict("permission " + req.Service + ":" + req.Code + " already exists in realm " + realm)
 	}
 	perm := shareddomain.Permission{
 		RealmID: r.ID, Service: req.Service, Code: req.Code, Type: validPermissionType(req.Type), Description: req.Description,
@@ -88,7 +88,7 @@ func (uc *rbacUsecaseImpl) UpdatePermission(ctx context.Context, realm string, i
 		return common.NotFound(err, "permission")
 	}
 	if existing, findErr := uc.repoSQL.PermissionRepo().FindByServiceCode(ctx, r.ID, req.Service, req.Code); findErr == nil && existing.ID != perm.ID {
-		return helper.NewConflict("permission " + req.Service + ":" + req.Code + " already exists in realm " + realm)
+		return rest.NewConflict("permission " + req.Service + ":" + req.Code + " already exists in realm " + realm)
 	}
 	perm.Service, perm.Code, perm.Type, perm.Description = req.Service, req.Code, validPermissionType(req.Type), req.Description
 	return uc.repoSQL.PermissionRepo().Save(ctx, &perm)

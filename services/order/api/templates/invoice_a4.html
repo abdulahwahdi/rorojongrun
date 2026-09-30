@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{.Title}} {{.Invoice.Number}}</title>
+<style>
+  @page { size: A4; margin: 18mm; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1f2328; font-size: 13px; margin: 0; }
+  .sheet { max-width: 180mm; margin: 0 auto; padding: 8mm 0; }
+  header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1f2328; padding-bottom: 12px; }
+  h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: .5px; }
+  .muted { color: #57606a; }
+  .meta { text-align: right; line-height: 1.6; }
+  .parties { display: flex; justify-content: space-between; margin: 18px 0; line-height: 1.6; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; border-bottom: 1px solid #d0d7de; padding: 8px 4px; font-size: 12px; text-transform: uppercase; color: #57606a; }
+  td { padding: 8px 4px; border-bottom: 1px solid #eaeef2; }
+  .num { text-align: right; white-space: nowrap; }
+  .totals { margin-left: auto; width: 60%; margin-top: 12px; }
+  .totals td { border: 0; padding: 4px; }
+  .grand td { border-top: 2px solid #1f2328; font-weight: bold; font-size: 15px; padding-top: 8px; }
+  .credit { color: #b42318; }
+  footer { margin-top: 28px; font-size: 11px; }
+  @media print { .no-print { display: none; } }
+</style>
+</head>
+<body>
+<div class="sheet">
+  <header>
+    <div>
+      <h1 {{if .IsCreditNote}}class="credit"{{end}}>{{.Title}}</h1>
+      <div><strong>{{.Invoice.SellerName}}</strong></div>
+      {{if .Invoice.SellerAddress}}<div class="muted">{{.Invoice.SellerAddress}}</div>{{end}}
+      {{if .Invoice.SellerTaxID}}<div class="muted">Tax ID {{.Invoice.SellerTaxID}}</div>{{end}}
+    </div>
+    <div class="meta">
+      <div><strong>{{.Invoice.Number}}</strong></div>
+      <div>Issued {{.IssuedAt}}</div>
+      <div>Order {{.Invoice.OrderNumber}}</div>
+      {{if .RefNumber}}<div>Reverses {{.RefNumber}}</div>{{end}}
+    </div>
+  </header>
+
+  <div class="parties">
+    <div>
+      <div class="muted">Billed to</div>
+      <div><strong>{{if .Invoice.CustomerName}}{{.Invoice.CustomerName}}{{else}}Walk-in customer{{end}}</strong></div>
+      {{if .Invoice.CustomerEmail}}<div>{{.Invoice.CustomerEmail}}</div>{{end}}
+      {{if .Invoice.CustomerPhone}}<div>{{.Invoice.CustomerPhone}}</div>{{end}}
+    </div>
+    <div class="meta">
+      <div class="muted">Payment</div>
+      <div>{{if .Invoice.MethodCode}}{{.Invoice.MethodCode}}{{else}}-{{end}}</div>
+      {{if .PaidAt}}<div>Paid {{.PaidAt}}</div>{{end}}
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>#</th><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+    {{range .Invoice.Items}}
+      <tr><td>{{.LineNo}}</td><td>{{.Name}}</td><td class="num">{{.Quantity}}</td><td class="num">{{idr .Price}}</td><td class="num">{{idr .LineTotal}}</td></tr>
+    {{end}}
+    </tbody>
+  </table>
+
+  <table class="totals">
+    <tr><td>Subtotal</td><td class="num">{{idr .Invoice.Subtotal}}</td></tr>
+    {{if ne .Invoice.TaxMode "none"}}
+    <tr><td>{{.Invoice.TaxName}} {{.Invoice.TaxRate}}%{{if eq .Invoice.TaxMode "inclusive"}} (included){{end}}</td><td class="num">{{idr .Invoice.TaxAmount}}</td></tr>
+    {{end}}
+    {{if .Invoice.RoundingAdjustment}}<tr><td>Rounding</td><td class="num">{{idr .Invoice.RoundingAdjustment}}</td></tr>{{end}}
+    {{if .Invoice.Fee}}<tr><td>Payment fee</td><td class="num">{{idr .Invoice.Fee}}</td></tr>{{end}}
+    <tr class="grand"><td>{{if .IsCreditNote}}Refunded{{else}}Total paid{{end}}</td><td class="num {{if .IsCreditNote}}credit{{end}}">{{idr .Invoice.TotalAmount}}</td></tr>
+  </table>
+
+  <footer class="muted">{{.Invoice.Number}} · {{.Invoice.Currency}} · This document was generated electronically.</footer>
+  <p class="no-print"><button onclick="window.print()">Print</button></p>
+</div>
+</body>
+</html>

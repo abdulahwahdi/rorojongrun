@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 
+	"monorepo/globalshared/gormx"
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/menu/domain"
 	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -26,7 +28,7 @@ func (r *menuRepoSQL) filter(db *gorm.DB, clientID int, f *domain.FilterMenu) *g
 		db = db.Where("parent_id = ?", *f.ParentID)
 	}
 	if f.Search != "" {
-		db = db.Where("(key ILIKE ? OR label ILIKE ?)", helper.Like(f.Search), helper.Like(f.Search))
+		db = db.Where("(key ILIKE ? OR label ILIKE ?)", gormx.Like(f.Search), gormx.Like(f.Search))
 	}
 	return db
 }
@@ -38,7 +40,7 @@ func (r *menuRepoSQL) FetchAll(ctx context.Context, clientID int, f *domain.Filt
 	if f.OrderBy == "" {
 		f.OrderBy, f.Sort = "sort_order", "asc"
 	}
-	db := helper.ApplyPaging(r.filter(helper.DB(ctx, r.readDB), clientID, f), &f.Filter, "sort_order", "id", "key", "label", "sort_order", "created_at")
+	db := gormx.ApplyPaging(r.filter(gormx.DB(ctx, r.readDB), clientID, f), &f.Filter, "sort_order", "id", "key", "label", "sort_order", "created_at")
 	err = db.Find(&data).Error
 	return
 }
@@ -48,7 +50,7 @@ func (r *menuRepoSQL) Count(ctx context.Context, clientID int, f *domain.FilterM
 	defer trace.Finish()
 
 	var total int64
-	r.filter(helper.DB(ctx, r.readDB), clientID, f).Model(&shareddomain.Menu{}).Count(&total)
+	r.filter(gormx.DB(ctx, r.readDB), clientID, f).Model(&shareddomain.Menu{}).Count(&total)
 	return int(total)
 }
 
@@ -56,7 +58,7 @@ func (r *menuRepoSQL) FetchAllOfClient(ctx context.Context, clientID int) (data 
 	trace, ctx := tracer.StartTraceWithContext(ctx, "MenuRepoSQL:FetchAllOfClient")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "menus").Where("client_id = ?", clientID).Order("sort_order, id").Find(&data).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "menus").Where("client_id = ?", clientID).Order("sort_order, id").Find(&data).Error
 	return
 }
 
@@ -64,7 +66,7 @@ func (r *menuRepoSQL) Find(ctx context.Context, clientID, id int) (res shareddom
 	trace, ctx := tracer.StartTraceWithContext(ctx, "MenuRepoSQL:Find")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "menus").Where("client_id = ? AND id = ?", clientID, id).First(&res).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "menus").Where("client_id = ? AND id = ?", clientID, id).First(&res).Error
 	return
 }
 
@@ -72,7 +74,7 @@ func (r *menuRepoSQL) FindByKey(ctx context.Context, clientID int, key string) (
 	trace, ctx := tracer.StartTraceWithContext(ctx, "MenuRepoSQL:FindByKey")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "menus").Where("client_id = ? AND key = ?", clientID, key).First(&res).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "menus").Where("client_id = ? AND key = ?", clientID, key).First(&res).Error
 	return
 }
 
@@ -80,7 +82,7 @@ func (r *menuRepoSQL) Save(ctx context.Context, data *shareddomain.Menu) (err er
 	trace, ctx := tracer.StartTraceWithContext(ctx, "MenuRepoSQL:Save")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.MapDBError(helper.Save(helper.DB(ctx, r.writeDB), data.ID, data))
+	return rest.MapDBError(helper.Save(gormx.DB(ctx, r.writeDB), data.ID, data))
 }
 
 func (r *menuRepoSQL) DeleteMany(ctx context.Context, ids []int) (err error) {
@@ -90,12 +92,12 @@ func (r *menuRepoSQL) DeleteMany(ctx context.Context, ids []int) (err error) {
 	if len(ids) == 0 {
 		return nil
 	}
-	return helper.SoftDelete(helper.DB(ctx, r.writeDB), &shareddomain.Menu{}, "id IN ?", ids)
+	return helper.SoftDelete(gormx.DB(ctx, r.writeDB), &shareddomain.Menu{}, "id IN ?", ids)
 }
 
 func (r *menuRepoSQL) DeleteByClient(ctx context.Context, clientID int) (err error) {
 	trace, ctx := tracer.StartTraceWithContext(ctx, "MenuRepoSQL:DeleteByClient")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.SoftDelete(helper.DB(ctx, r.writeDB), &shareddomain.Menu{}, "client_id = ?", clientID)
+	return helper.SoftDelete(gormx.DB(ctx, r.writeDB), &shareddomain.Menu{}, "client_id = ?", clientID)
 }

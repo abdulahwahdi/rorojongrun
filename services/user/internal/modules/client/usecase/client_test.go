@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/client/domain"
 	"monorepo/services/user/pkg/helper"
 	mockauthrepo "monorepo/services/user/pkg/mocks/modules/auth/repository"
@@ -63,9 +64,9 @@ func Test_normalizeGrants(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "otp,password", g)
 	_, err = normalizeGrants("public", []string{"client_credentials"})
-	assert.Equal(t, 400, helper.HTTPStatus(err), "machine grant needs a secret to protect it")
+	assert.Equal(t, 400, rest.HTTPStatus(err), "machine grant needs a secret to protect it")
 	_, err = normalizeGrants("public", []string{"implicit"})
-	assert.Equal(t, 400, helper.HTTPStatus(err))
+	assert.Equal(t, 400, rest.HTTPStatus(err))
 }
 
 func Test_CreateClient(t *testing.T) {
@@ -103,9 +104,9 @@ func Test_CreateClient(t *testing.T) {
 		h := newHarness(t)
 		h.clients.On("FindByClientID", mock.Anything, 1, "web").Return(shareddomain.Client{ID: 1}, nil)
 		_, err := h.uc.CreateClient(ctxOf("acme"), "acme", &domain.RequestCreateClient{ClientID: "web"})
-		assert.Equal(t, 409, helper.HTTPStatus(err))
+		assert.Equal(t, 409, rest.HTTPStatus(err))
 		_, err = h.uc.CreateClient(ctxOf("acme"), "acme", &domain.RequestCreateClient{ClientID: "x", Type: "weird"})
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 	})
 }
 
@@ -128,7 +129,7 @@ func Test_UpdateClient(t *testing.T) {
 		h := newHarness(t)
 		h.clients.On("Find", mock.Anything, 1, 7).Return(existing, nil)
 		err := h.uc.UpdateClient(ctxOf("acme"), "acme", 7, &domain.RequestUpdateClient{GrantTypes: []string{"client_credentials"}})
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 	})
 }
 
@@ -166,6 +167,6 @@ func Test_DeleteAndRotate(t *testing.T) {
 		h := newHarness(t)
 		h.clients.On("Find", mock.Anything, 1, 7).Return(shareddomain.Client{ID: 7, Type: "public"}, nil)
 		_, err := h.uc.RotateClientSecret(ctxOf("acme"), "acme", 7)
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 	})
 }

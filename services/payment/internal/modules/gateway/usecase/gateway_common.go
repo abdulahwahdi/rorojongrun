@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/gateway/domain"
 	"monorepo/services/payment/internal/modules/gateway/provider"
-	"monorepo/services/payment/pkg/helper"
 	"monorepo/services/payment/pkg/shared"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
@@ -19,7 +19,7 @@ func gatewayEncryptionSecret() string { return shared.GetEnv().GatewayEncryption
 func (uc *gatewayUsecaseImpl) load(ctx context.Context, code string) (row shareddomain.Gateway, creds map[string]string, err error) {
 	row, err = uc.repoSQL.GatewayRepo().FindByCode(ctx, code)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return row, nil, helper.NewNotFound("gateway not found")
+		return row, nil, rest.NewNotFound("gateway not found")
 	}
 	if err != nil {
 		return row, nil, err

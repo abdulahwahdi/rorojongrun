@@ -3,7 +3,11 @@
 package order
 
 import (
+	"monorepo/services/order/internal/modules/export"
+	"monorepo/services/order/internal/modules/invoice"
+	"monorepo/services/order/internal/modules/merchant"
 	"monorepo/services/order/internal/modules/order"
+	"monorepo/services/order/internal/modules/shift"
 
 	"monorepo/services/order/configs"
 
@@ -28,6 +32,10 @@ func NewService(cfg *config.Config) factory.ServiceFactory {
 
 	modules := []factory.ModuleFactory{
 		order.NewModule(deps),
+		invoice.NewModule(deps),
+		merchant.NewModule(deps),
+		shift.NewModule(deps),
+		export.NewModule(deps),
 	}
 
 	s := &Service{

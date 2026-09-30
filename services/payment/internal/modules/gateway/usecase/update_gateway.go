@@ -7,8 +7,8 @@ import (
 	"slices"
 
 	"monorepo/globalshared/crypto"
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/gateway/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/tracer"
@@ -25,10 +25,10 @@ func (uc *gatewayUsecaseImpl) UpdateGateway(ctx context.Context, code string, re
 
 	if req.Environment != "" {
 		if req.Environment != shareddomain.EnvSandbox && req.Environment != shareddomain.EnvProduction {
-			return data, helper.NewInvalid("environment must be sandbox or production")
+			return data, rest.NewInvalid("environment must be sandbox or production")
 		}
 		if code == shareddomain.GatewayMock && req.Environment == shareddomain.EnvProduction {
-			return data, helper.NewInvalid("the mock gateway cannot run in production")
+			return data, rest.NewInvalid("the mock gateway cannot run in production")
 		}
 		row.Environment = req.Environment
 	}
@@ -43,7 +43,7 @@ func (uc *gatewayUsecaseImpl) UpdateGateway(ctx context.Context, code string, re
 		allowed := domain.AllowedCredentialKeys[code]
 		for k, v := range req.Credentials {
 			if !slices.Contains(allowed, k) {
-				return data, helper.NewInvalid(fmt.Sprintf("unknown credential %q for gateway %s (allowed: %v)", k, code, allowed))
+				return data, rest.NewInvalid(fmt.Sprintf("unknown credential %q for gateway %s (allowed: %v)", k, code, allowed))
 			}
 			if v == "" {
 				delete(creds, k)
@@ -52,7 +52,7 @@ func (uc *gatewayUsecaseImpl) UpdateGateway(ctx context.Context, code string, re
 			}
 		}
 		if secret := uc.encryptionSecret(); secret == "" {
-			return data, helper.NewInvalid("GATEWAY_ENCRYPTION_SECRET is not configured, credentials cannot be stored")
+			return data, rest.NewInvalid("GATEWAY_ENCRYPTION_SECRET is not configured, credentials cannot be stored")
 		}
 		if len(creds) == 0 {
 			row.CredentialsEnc = ""
@@ -80,7 +80,7 @@ func (uc *gatewayUsecaseImpl) UpdateGateway(ctx context.Context, code string, re
 func requireCredentials(code string, creds map[string]string) error {
 	for _, k := range domain.RequiredCredentialKeys[code] {
 		if creds[k] == "" {
-			return helper.NewInvalid(fmt.Sprintf("gateway %s needs credential %q", code, k))
+			return rest.NewInvalid(fmt.Sprintf("gateway %s needs credential %q", code, k))
 		}
 	}
 	return nil

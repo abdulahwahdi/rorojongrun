@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/auth/domain"
-	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared/usecase"
 
 	"github.com/golangid/candi/candihelper"
@@ -47,11 +47,11 @@ func (h *RestHandler) Mount(root interfaces.RESTRouter) {
 	root.DELETE(base+"/me/sessions/:sessionId", h.revokeMySession, h.mw.HTTPBearerAuth)
 
 	// admin: sessions of the realm
-	root.GET(base+"/sessions", h.getAllSession, helper.Secure(h.mw, "getAllSession")...)
-	root.GET(base+"/sessions/:sessionId", h.getDetailSession, helper.Secure(h.mw, "getDetailSession")...)
-	root.DELETE(base+"/sessions/:sessionId", h.revokeSession, helper.Secure(h.mw, "revokeSession")...)
-	root.GET(base+"/users/:id/sessions", h.getUserSessions, helper.Secure(h.mw, "getAllSession")...)
-	root.DELETE(base+"/users/:id/sessions", h.revokeUserSessions, helper.Secure(h.mw, "revokeUserSessions")...)
+	root.GET(base+"/sessions", h.getAllSession, rest.Secure(h.mw, "getAllSession")...)
+	root.GET(base+"/sessions/:sessionId", h.getDetailSession, rest.Secure(h.mw, "getDetailSession")...)
+	root.DELETE(base+"/sessions/:sessionId", h.revokeSession, rest.Secure(h.mw, "revokeSession")...)
+	root.GET(base+"/users/:id/sessions", h.getUserSessions, rest.Secure(h.mw, "getAllSession")...)
+	root.DELETE(base+"/users/:id/sessions", h.revokeUserSessions, rest.Secure(h.mw, "revokeUserSessions")...)
 }
 
 func realmParam(req *http.Request) string { return restserver.URLParam(req, "realm") }
@@ -78,16 +78,16 @@ func (h *RestHandler) token(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestToken
-	if !helper.DecodeBody(rw, req, h.validator, "auth/token", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "auth/token", &payload) {
 		return
 	}
 	res, err := h.uc.Auth().Token(ctx, realmParam(req), &payload, clientMeta(req))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	rw.Header().Set("Cache-Control", "no-store")
-	helper.WriteOK(rw, res)
+	rest.WriteOK(rw, res)
 }
 
 // requestOTP godoc
@@ -103,11 +103,11 @@ func (h *RestHandler) requestOTP(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestOTPLogin
-	if !helper.DecodeBody(rw, req, h.validator, "auth/otp_request", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "auth/otp_request", &payload) {
 		return
 	}
 	if err := h.uc.Auth().RequestOTP(ctx, realmParam(req), &payload); err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	wrapper.NewHTTPResponse(http.StatusAccepted, "If the account exists a code was sent").JSON(rw)
@@ -124,10 +124,10 @@ func (h *RestHandler) logout(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	if err := h.uc.Auth().Logout(ctx, realmParam(req)); err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // getMe godoc
@@ -143,10 +143,10 @@ func (h *RestHandler) getMe(rw http.ResponseWriter, req *http.Request) {
 
 	data, err := h.uc.Auth().GetMe(ctx, realmParam(req))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // getMyPermissions godoc
@@ -163,10 +163,10 @@ func (h *RestHandler) getMyPermissions(rw http.ResponseWriter, req *http.Request
 
 	data, err := h.uc.Auth().GetMyPermissions(ctx, realmParam(req), req.URL.Query().Get("client"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // getMySessions godoc
@@ -181,7 +181,7 @@ func (h *RestHandler) getMySessions(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var filter domain.FilterSession
-	if !helper.ParseFilter(rw, req, h.validator, "auth/get_all_session", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "auth/get_all_session", &filter) {
 		return
 	}
 	writeSessions(rw)(h.uc.Auth().GetMySessions(ctx, realmParam(req), &filter))
@@ -198,17 +198,17 @@ func (h *RestHandler) revokeMySession(rw http.ResponseWriter, req *http.Request)
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "AuthDeliveryREST:RevokeMySession")
 	defer trace.Finish()
 
-	if err := h.uc.Auth().RevokeMySession(ctx, realmParam(req), helper.URLParamInt(req, "sessionId")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Auth().RevokeMySession(ctx, realmParam(req), rest.URLParamInt(req, "sessionId")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 func writeSessions(rw http.ResponseWriter) func(domain.ResponseSessionList, error) {
 	return func(result domain.ResponseSessionList, err error) {
 		if err != nil {
-			helper.WriteError(rw, err)
+			rest.WriteError(rw, err)
 			return
 		}
 		response := wrapper.NewHTTPResponse(http.StatusOK, "Success", result.Data)
@@ -229,7 +229,7 @@ func (h *RestHandler) getAllSession(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var filter domain.FilterSession
-	if !helper.ParseFilter(rw, req, h.validator, "auth/get_all_session", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "auth/get_all_session", &filter) {
 		return
 	}
 	writeSessions(rw)(h.uc.Auth().GetAllSession(ctx, realmParam(req), &filter))
@@ -248,10 +248,10 @@ func (h *RestHandler) getUserSessions(rw http.ResponseWriter, req *http.Request)
 	defer trace.Finish()
 
 	var filter domain.FilterSession
-	if !helper.ParseFilter(rw, req, h.validator, "auth/get_all_session", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "auth/get_all_session", &filter) {
 		return
 	}
-	userID := helper.URLParamInt(req, "id")
+	userID := rest.URLParamInt(req, "id")
 	filter.UserID = &userID
 	writeSessions(rw)(h.uc.Auth().GetAllSession(ctx, realmParam(req), &filter))
 }
@@ -268,12 +268,12 @@ func (h *RestHandler) getDetailSession(rw http.ResponseWriter, req *http.Request
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "AuthDeliveryREST:GetDetailSession")
 	defer trace.Finish()
 
-	data, err := h.uc.Auth().GetDetailSession(ctx, realmParam(req), helper.URLParamInt(req, "sessionId"))
+	data, err := h.uc.Auth().GetDetailSession(ctx, realmParam(req), rest.URLParamInt(req, "sessionId"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // revokeSession godoc
@@ -287,11 +287,11 @@ func (h *RestHandler) revokeSession(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "AuthDeliveryREST:RevokeSession")
 	defer trace.Finish()
 
-	if err := h.uc.Auth().RevokeSession(ctx, realmParam(req), helper.URLParamInt(req, "sessionId")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Auth().RevokeSession(ctx, realmParam(req), rest.URLParamInt(req, "sessionId")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // revokeUserSessions godoc
@@ -305,9 +305,9 @@ func (h *RestHandler) revokeUserSessions(rw http.ResponseWriter, req *http.Reque
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "AuthDeliveryREST:RevokeUserSessions")
 	defer trace.Finish()
 
-	if err := h.uc.Auth().RevokeUserSessions(ctx, realmParam(req), helper.URLParamInt(req, "id")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Auth().RevokeUserSessions(ctx, realmParam(req), rest.URLParamInt(req, "id")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }

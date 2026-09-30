@@ -5,8 +5,8 @@ import (
 	"slices"
 	"time"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/tracer"
@@ -122,12 +122,12 @@ func (uc *paymentUsecaseImpl) usableMethod(ctx context.Context, p *shareddomain.
 			return m, nil
 		}
 	}
-	return shareddomain.Method{}, helper.NewInvalid("payment method " + code + " is not available for this payment")
+	return shareddomain.Method{}, rest.NewInvalid("payment method " + code + " is not available for this payment")
 }
 
 func (uc *paymentUsecaseImpl) notPayable(p *shareddomain.Payment) error {
 	if p.IsFinal() {
-		return helper.NewConflict("payment is " + p.Status)
+		return rest.NewConflict("payment is " + p.Status)
 	}
 	return nil
 }
@@ -197,7 +197,7 @@ func (uc *paymentUsecaseImpl) CancelPayment(ctx context.Context, id string) (res
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
 	if !isValidUUID(id) {
-		return res, helper.NewNotFound("payment not found")
+		return res, rest.NewNotFound("payment not found")
 	}
 	if _, err = uc.cancelPayment(ctx, id, "cancelled by caller"); err != nil {
 		return res, err
@@ -211,14 +211,14 @@ func (uc *paymentUsecaseImpl) cancelPayment(ctx context.Context, id, reason stri
 	err = uc.repoSQL.WithTransaction(ctx, func(ctx context.Context) error {
 		cur, err := uc.repoSQL.PaymentRepo().LockPayment(ctx, id)
 		if err != nil {
-			return helper.NewNotFound("payment not found")
+			return rest.NewNotFound("payment not found")
 		}
 		p = cur
 		switch cur.Status {
 		case shareddomain.PaymentCancelled:
 			return nil
 		case shareddomain.PaymentPaid, shareddomain.PaymentExpired:
-			return helper.NewConflict("payment is already " + cur.Status)
+			return rest.NewConflict("payment is already " + cur.Status)
 		}
 		open, hasOpen := uc.openTransaction(ctx, cur.ID)
 		if hasOpen {

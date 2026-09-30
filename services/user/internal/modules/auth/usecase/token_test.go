@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"monorepo/globalshared/auth"
+	"monorepo/globalshared/rest"
 	mocknotification "monorepo/sdk/mocks/notification"
 	"monorepo/sdk/notification"
 	"monorepo/services/user/internal/modules/auth/domain"
@@ -18,7 +19,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func statusOf(err error) int { return helper.HTTPStatus(err) }
+func statusOf(err error) int { return rest.HTTPStatus(err) }
 
 func passwordReq(pw string) *domain.RequestToken {
 	return &domain.RequestToken{GrantType: domain.GrantPassword, ClientID: "web", Username: "Alice", Password: pw}

@@ -78,3 +78,11 @@ func TokenClaimFromContext(ctx interface{ Value(any) any }) *candishared.TokenCl
 	c, _ := ctx.Value(candishared.ContextKeyTokenClaim).(*candishared.TokenClaim)
 	return c
 }
+
+// SubjectFromContext is the token subject (user or service client id) of the request, "" if none
+func SubjectFromContext(ctx interface{ Value(any) any }) string {
+	if c := TokenClaimFromContext(ctx); c != nil {
+		return c.Subject
+	}
+	return ""
+}

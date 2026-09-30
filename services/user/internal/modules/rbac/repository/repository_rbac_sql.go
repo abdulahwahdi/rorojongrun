@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 
+	"monorepo/globalshared/gormx"
 	"monorepo/services/user/internal/modules/rbac/domain"
 	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -27,7 +28,7 @@ func (r *roleRepoSQL) filter(db *gorm.DB, realmID int, f *domain.FilterRole) *go
 		db = db.Where("name = ?", f.Name)
 	}
 	if f.Search != "" {
-		db = db.Where("(name ILIKE ? OR description ILIKE ?)", helper.Like(f.Search), helper.Like(f.Search))
+		db = db.Where("(name ILIKE ? OR description ILIKE ?)", gormx.Like(f.Search), gormx.Like(f.Search))
 	}
 	return db
 }
@@ -36,7 +37,7 @@ func (r *roleRepoSQL) FetchAll(ctx context.Context, realmID int, f *domain.Filte
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:FetchAll")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := helper.ApplyPaging(r.filter(helper.DB(ctx, r.readDB), realmID, f), &f.Filter, "id", "id", "name", "created_at", "updated_at")
+	db := gormx.ApplyPaging(r.filter(gormx.DB(ctx, r.readDB), realmID, f), &f.Filter, "id", "id", "name", "created_at", "updated_at")
 	err = db.Find(&data).Error
 	return
 }
@@ -46,7 +47,7 @@ func (r *roleRepoSQL) Count(ctx context.Context, realmID int, f *domain.FilterRo
 	defer trace.Finish()
 
 	var total int64
-	r.filter(helper.DB(ctx, r.readDB), realmID, f).Model(&shareddomain.Role{}).Count(&total)
+	r.filter(gormx.DB(ctx, r.readDB), realmID, f).Model(&shareddomain.Role{}).Count(&total)
 	return int(total)
 }
 
@@ -54,7 +55,7 @@ func (r *roleRepoSQL) Find(ctx context.Context, realmID, id int) (res shareddoma
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:Find")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "roles").Where("realm_id = ? AND id = ?", realmID, id).First(&res).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "roles").Where("realm_id = ? AND id = ?", realmID, id).First(&res).Error
 	return
 }
 
@@ -62,7 +63,7 @@ func (r *roleRepoSQL) FindByName(ctx context.Context, realmID int, name string) 
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:FindByName")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "roles").Where("realm_id = ? AND name = ?", realmID, name).First(&res).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "roles").Where("realm_id = ? AND name = ?", realmID, name).First(&res).Error
 	return
 }
 
@@ -70,14 +71,14 @@ func (r *roleRepoSQL) Save(ctx context.Context, data *shareddomain.Role) (err er
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:Save")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.Save(helper.DB(ctx, r.writeDB), data.ID, data)
+	return helper.Save(gormx.DB(ctx, r.writeDB), data.ID, data)
 }
 
 func (r *roleRepoSQL) Delete(ctx context.Context, id int) (err error) {
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:Delete")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := helper.DB(ctx, r.writeDB)
+	db := gormx.DB(ctx, r.writeDB)
 	if err = db.Where("role_id = ?", id).Delete(&shareddomain.UserRole{}).Error; err != nil {
 		return err
 	}
@@ -92,7 +93,7 @@ func (r *roleRepoSQL) CountUsers(ctx context.Context, roleID int) int {
 	defer trace.Finish()
 
 	var total int64
-	helper.DB(ctx, r.readDB).Model(&shareddomain.UserRole{}).Where("role_id = ?", roleID).Count(&total)
+	gormx.DB(ctx, r.readDB).Model(&shareddomain.UserRole{}).Where("role_id = ?", roleID).Count(&total)
 	return int(total)
 }
 
@@ -100,7 +101,7 @@ func (r *roleRepoSQL) Permissions(ctx context.Context, roleID int) (data []share
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:Permissions")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "permissions").
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "permissions").
 		Joins("JOIN role_permissions rp ON rp.permission_id = permissions.id").
 		Where("rp.role_id = ?", roleID).Order("permissions.service, permissions.code").Find(&data).Error
 	return
@@ -110,7 +111,7 @@ func (r *roleRepoSQL) ReplacePermissions(ctx context.Context, roleID int, permis
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:ReplacePermissions")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := helper.DB(ctx, r.writeDB)
+	db := gormx.DB(ctx, r.writeDB)
 	return db.Transaction(func(tx *gorm.DB) error {
 		if err := tx.Where("role_id = ?", roleID).Delete(&shareddomain.RolePermission{}).Error; err != nil {
 			return err
@@ -130,7 +131,7 @@ func (r *roleRepoSQL) AddPermission(ctx context.Context, roleID, permissionID in
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:AddPermission")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.DB(ctx, r.writeDB).Clauses(clause.OnConflict{DoNothing: true}).
+	return gormx.DB(ctx, r.writeDB).Clauses(clause.OnConflict{DoNothing: true}).
 		Create(&shareddomain.RolePermission{RoleID: roleID, PermissionID: permissionID}).Error
 }
 
@@ -138,7 +139,7 @@ func (r *roleRepoSQL) RemovePermission(ctx context.Context, roleID, permissionID
 	trace, ctx := tracer.StartTraceWithContext(ctx, "RoleRepoSQL:RemovePermission")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.DB(ctx, r.writeDB).Where("role_id = ? AND permission_id = ?", roleID, permissionID).
+	return gormx.DB(ctx, r.writeDB).Where("role_id = ? AND permission_id = ?", roleID, permissionID).
 		Delete(&shareddomain.RolePermission{}).Error
 }
 
@@ -163,7 +164,7 @@ func (r *permissionRepoSQL) filter(db *gorm.DB, realmID int, f *domain.FilterPer
 		db = db.Where("type = ?", f.Type)
 	}
 	if f.Search != "" {
-		db = db.Where("(code ILIKE ? OR description ILIKE ?)", helper.Like(f.Search), helper.Like(f.Search))
+		db = db.Where("(code ILIKE ? OR description ILIKE ?)", gormx.Like(f.Search), gormx.Like(f.Search))
 	}
 	return db
 }
@@ -172,7 +173,7 @@ func (r *permissionRepoSQL) FetchAll(ctx context.Context, realmID int, f *domain
 	trace, ctx := tracer.StartTraceWithContext(ctx, "PermissionRepoSQL:FetchAll")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := helper.ApplyPaging(r.filter(helper.DB(ctx, r.readDB), realmID, f), &f.Filter, "id", "id", "service", "code", "created_at", "updated_at")
+	db := gormx.ApplyPaging(r.filter(gormx.DB(ctx, r.readDB), realmID, f), &f.Filter, "id", "id", "service", "code", "created_at", "updated_at")
 	err = db.Find(&data).Error
 	return
 }
@@ -182,7 +183,7 @@ func (r *permissionRepoSQL) Count(ctx context.Context, realmID int, f *domain.Fi
 	defer trace.Finish()
 
 	var total int64
-	r.filter(helper.DB(ctx, r.readDB), realmID, f).Model(&shareddomain.Permission{}).Count(&total)
+	r.filter(gormx.DB(ctx, r.readDB), realmID, f).Model(&shareddomain.Permission{}).Count(&total)
 	return int(total)
 }
 
@@ -190,7 +191,7 @@ func (r *permissionRepoSQL) Find(ctx context.Context, realmID, id int) (res shar
 	trace, ctx := tracer.StartTraceWithContext(ctx, "PermissionRepoSQL:Find")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "permissions").Where("realm_id = ? AND id = ?", realmID, id).First(&res).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "permissions").Where("realm_id = ? AND id = ?", realmID, id).First(&res).Error
 	return
 }
 
@@ -198,7 +199,7 @@ func (r *permissionRepoSQL) FindByServiceCode(ctx context.Context, realmID int, 
 	trace, ctx := tracer.StartTraceWithContext(ctx, "PermissionRepoSQL:FindByServiceCode")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "permissions").
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "permissions").
 		Where("realm_id = ? AND service = ? AND code = ?", realmID, service, code).First(&res).Error
 	return
 }
@@ -210,7 +211,7 @@ func (r *permissionRepoSQL) FetchByIDs(ctx context.Context, realmID int, ids []i
 	if len(ids) == 0 {
 		return nil, nil
 	}
-	err = helper.Alive(helper.DB(ctx, r.readDB), "permissions").Where("realm_id = ? AND id IN ?", realmID, ids).Find(&data).Error
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "permissions").Where("realm_id = ? AND id IN ?", realmID, ids).Find(&data).Error
 	return
 }
 
@@ -222,7 +223,7 @@ func (r *permissionRepoSQL) CountByIDs(ctx context.Context, realmID int, ids []i
 		return 0
 	}
 	var total int64
-	helper.Alive(helper.DB(ctx, r.readDB), "permissions").Model(&shareddomain.Permission{}).
+	helper.Alive(gormx.DB(ctx, r.readDB), "permissions").Model(&shareddomain.Permission{}).
 		Where("realm_id = ? AND id IN ?", realmID, ids).Count(&total)
 	return int(total)
 }
@@ -231,14 +232,14 @@ func (r *permissionRepoSQL) Save(ctx context.Context, data *shareddomain.Permiss
 	trace, ctx := tracer.StartTraceWithContext(ctx, "PermissionRepoSQL:Save")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	return helper.Save(helper.DB(ctx, r.writeDB), data.ID, data)
+	return helper.Save(gormx.DB(ctx, r.writeDB), data.ID, data)
 }
 
 func (r *permissionRepoSQL) Delete(ctx context.Context, id int) (err error) {
 	trace, ctx := tracer.StartTraceWithContext(ctx, "PermissionRepoSQL:Delete")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	db := helper.DB(ctx, r.writeDB)
+	db := gormx.DB(ctx, r.writeDB)
 	if err = db.Where("permission_id = ?", id).Delete(&shareddomain.RolePermission{}).Error; err != nil {
 		return err
 	}
@@ -252,7 +253,7 @@ func (r *permissionRepoSQL) EffectiveForUser(ctx context.Context, realmID, userI
 	trace, ctx := tracer.StartTraceWithContext(ctx, "PermissionRepoSQL:EffectiveForUser")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.Alive(helper.DB(ctx, r.readDB), "permissions").
+	err = helper.Alive(gormx.DB(ctx, r.readDB), "permissions").
 		Joins("JOIN role_permissions rp ON rp.permission_id = permissions.id").
 		Joins("JOIN roles r ON r.id = rp.role_id AND r.deleted_at IS NULL").
 		Joins("JOIN user_roles ur ON ur.role_id = r.id").

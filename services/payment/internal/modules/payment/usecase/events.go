@@ -3,11 +3,11 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"monorepo/globalshared/money"
 	"strings"
 	"time"
 
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/logger"
@@ -23,10 +23,13 @@ func (uc *paymentUsecaseImpl) paymentURL(p *shareddomain.Payment) string {
 
 func (uc *paymentUsecaseImpl) paymentEvent(event string, p *shareddomain.Payment, txn *shareddomain.Transaction) domain.PaymentEvent {
 	ev := domain.PaymentEvent{
-		Event: event, PaymentID: p.ID, Source: p.Source, ReferenceID: p.ReferenceID, Status: p.Status,
-		Amount: p.Amount, Fee: p.Fee, TotalAmount: p.TotalAmount, Currency: p.Currency, MethodCode: p.MethodCode,
-		PaidAt: utcPtr(p.PaidAt), ExpiresAt: p.ExpiresAt.UTC(), Metadata: decodeMap(p.Metadata),
+		Event: event, PaymentID: p.ID, Source: p.Source, ReferenceID: p.ReferenceID, Description: p.Description,
+		Status: p.Status, Amount: p.Amount, Fee: p.Fee, TotalAmount: p.TotalAmount, Currency: p.Currency,
+		MethodCode: p.MethodCode, PaidAt: utcPtr(p.PaidAt), ExpiresAt: p.ExpiresAt.UTC(), Metadata: decodeMap(p.Metadata),
+		Items: []shareddomain.Item{}, CreatedAt: p.CreatedAt.UTC(), OccurredAt: uc.now().UTC(),
 	}
+	_ = p.Customer.Decode(&ev.Customer)
+	_ = p.Items.Decode(&ev.Items)
 	if txn != nil {
 		ev.TransactionID, ev.MethodCode, ev.GatewayCode = txn.ID, txn.MethodCode, txn.GatewayCode
 		ev.Fee, ev.TotalAmount = txn.Amount-p.Amount, txn.Amount
@@ -70,8 +73,8 @@ func (uc *paymentUsecaseImpl) enqueueEmail(ctx context.Context, templateCode str
 	}
 	vars := map[string]any{
 		"customerName": name, "referenceId": p.ReferenceID, "description": p.Description,
-		"totalAmount": helper.FormatIDR(total), "amount": helper.FormatIDR(p.Amount),
-		"fee": helper.FormatIDR(total - p.Amount), "methodName": methodName,
+		"totalAmount": money.FormatIDR(total), "amount": money.FormatIDR(p.Amount),
+		"fee": money.FormatIDR(total - p.Amount), "methodName": methodName,
 		"expiresAt": formatTime(p.ExpiresAt), "paymentUrl": uc.paymentURL(p),
 	}
 	if txn != nil {

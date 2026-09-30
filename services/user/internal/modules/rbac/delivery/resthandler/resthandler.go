@@ -3,8 +3,8 @@ package resthandler
 import (
 	"net/http"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/rbac/domain"
-	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared/usecase"
 
 	"github.com/golangid/candi/candihelper"
@@ -33,23 +33,23 @@ func NewRestHandler(uc usecase.Usecase, deps dependency.Dependency) *RestHandler
 func (h *RestHandler) Mount(root interfaces.RESTRouter) {
 	base := candihelper.V1 + "/realms/:realm"
 
-	root.GET(base+"/roles", h.getAllRole, helper.Secure(h.mw, "getAllRole")...)
-	root.POST(base+"/roles", h.createRole, helper.Secure(h.mw, "createRole")...)
-	root.GET(base+"/roles/:id", h.getDetailRole, helper.Secure(h.mw, "getDetailRole")...)
-	root.PUT(base+"/roles/:id", h.updateRole, helper.Secure(h.mw, "updateRole")...)
-	root.DELETE(base+"/roles/:id", h.deleteRole, helper.Secure(h.mw, "deleteRole")...)
+	root.GET(base+"/roles", h.getAllRole, rest.Secure(h.mw, "getAllRole")...)
+	root.POST(base+"/roles", h.createRole, rest.Secure(h.mw, "createRole")...)
+	root.GET(base+"/roles/:id", h.getDetailRole, rest.Secure(h.mw, "getDetailRole")...)
+	root.PUT(base+"/roles/:id", h.updateRole, rest.Secure(h.mw, "updateRole")...)
+	root.DELETE(base+"/roles/:id", h.deleteRole, rest.Secure(h.mw, "deleteRole")...)
 
-	root.GET(base+"/roles/:id/permissions", h.getRolePermissions, helper.Secure(h.mw, "getRolePermissions")...)
-	root.POST(base+"/roles/:id/permissions", h.addRolePermission, helper.Secure(h.mw, "addRolePermission")...)
-	root.PUT(base+"/roles/:id/permissions", h.replaceRolePermissions, helper.Secure(h.mw, "replaceRolePermissions")...)
-	root.DELETE(base+"/roles/:id/permissions/:permissionId", h.removeRolePermission, helper.Secure(h.mw, "removeRolePermission")...)
+	root.GET(base+"/roles/:id/permissions", h.getRolePermissions, rest.Secure(h.mw, "getRolePermissions")...)
+	root.POST(base+"/roles/:id/permissions", h.addRolePermission, rest.Secure(h.mw, "addRolePermission")...)
+	root.PUT(base+"/roles/:id/permissions", h.replaceRolePermissions, rest.Secure(h.mw, "replaceRolePermissions")...)
+	root.DELETE(base+"/roles/:id/permissions/:permissionId", h.removeRolePermission, rest.Secure(h.mw, "removeRolePermission")...)
 
-	root.GET(base+"/permissions", h.getAllPermission, helper.Secure(h.mw, "getAllPermission")...)
-	root.POST(base+"/permissions", h.createPermission, helper.Secure(h.mw, "createPermission")...)
-	root.POST(base+"/permissions/bulk", h.upsertPermissions, helper.Secure(h.mw, "upsertPermissions")...)
-	root.GET(base+"/permissions/:id", h.getDetailPermission, helper.Secure(h.mw, "getDetailPermission")...)
-	root.PUT(base+"/permissions/:id", h.updatePermission, helper.Secure(h.mw, "updatePermission")...)
-	root.DELETE(base+"/permissions/:id", h.deletePermission, helper.Secure(h.mw, "deletePermission")...)
+	root.GET(base+"/permissions", h.getAllPermission, rest.Secure(h.mw, "getAllPermission")...)
+	root.POST(base+"/permissions", h.createPermission, rest.Secure(h.mw, "createPermission")...)
+	root.POST(base+"/permissions/bulk", h.upsertPermissions, rest.Secure(h.mw, "upsertPermissions")...)
+	root.GET(base+"/permissions/:id", h.getDetailPermission, rest.Secure(h.mw, "getDetailPermission")...)
+	root.PUT(base+"/permissions/:id", h.updatePermission, rest.Secure(h.mw, "updatePermission")...)
+	root.DELETE(base+"/permissions/:id", h.deletePermission, rest.Secure(h.mw, "deletePermission")...)
 }
 
 func realmParam(req *http.Request) string { return restserver.URLParam(req, "realm") }
@@ -66,12 +66,12 @@ func (h *RestHandler) getAllRole(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var filter domain.FilterRole
-	if !helper.ParseFilter(rw, req, h.validator, "rbac/get_all_role", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "rbac/get_all_role", &filter) {
 		return
 	}
 	result, err := h.uc.Rbac().GetAllRole(ctx, realmParam(req), &filter)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	response := wrapper.NewHTTPResponse(http.StatusOK, "Success", result.Data)
@@ -91,12 +91,12 @@ func (h *RestHandler) getDetailRole(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "RbacDeliveryREST:GetDetailRole")
 	defer trace.Finish()
 
-	data, err := h.uc.Rbac().GetDetailRole(ctx, realmParam(req), helper.URLParamInt(req, "id"))
+	data, err := h.uc.Rbac().GetDetailRole(ctx, realmParam(req), rest.URLParamInt(req, "id"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // createRole godoc
@@ -113,12 +113,12 @@ func (h *RestHandler) createRole(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestRole
-	if !helper.DecodeBody(rw, req, h.validator, "rbac/save_role", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "rbac/save_role", &payload) {
 		return
 	}
 	res, err := h.uc.Rbac().CreateRole(ctx, realmParam(req), &payload)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	wrapper.NewHTTPResponse(http.StatusCreated, "Success", res).JSON(rw)
@@ -138,14 +138,14 @@ func (h *RestHandler) updateRole(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestRole
-	if !helper.DecodeBody(rw, req, h.validator, "rbac/save_role", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "rbac/save_role", &payload) {
 		return
 	}
-	if err := h.uc.Rbac().UpdateRole(ctx, realmParam(req), helper.URLParamInt(req, "id"), &payload); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Rbac().UpdateRole(ctx, realmParam(req), rest.URLParamInt(req, "id"), &payload); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // deleteRole godoc
@@ -161,11 +161,11 @@ func (h *RestHandler) deleteRole(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	force := req.URL.Query().Get("force") == "true"
-	if err := h.uc.Rbac().DeleteRole(ctx, realmParam(req), helper.URLParamInt(req, "id"), force); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Rbac().DeleteRole(ctx, realmParam(req), rest.URLParamInt(req, "id"), force); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // getRolePermissions godoc
@@ -179,12 +179,12 @@ func (h *RestHandler) getRolePermissions(rw http.ResponseWriter, req *http.Reque
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "RbacDeliveryREST:GetRolePermissions")
 	defer trace.Finish()
 
-	data, err := h.uc.Rbac().GetRolePermissions(ctx, realmParam(req), helper.URLParamInt(req, "id"))
+	data, err := h.uc.Rbac().GetRolePermissions(ctx, realmParam(req), rest.URLParamInt(req, "id"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // addRolePermission godoc
@@ -201,14 +201,14 @@ func (h *RestHandler) addRolePermission(rw http.ResponseWriter, req *http.Reques
 	defer trace.Finish()
 
 	var payload domain.RequestPermissionID
-	if !helper.DecodeBody(rw, req, h.validator, "rbac/add_role_permission", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "rbac/add_role_permission", &payload) {
 		return
 	}
-	if err := h.uc.Rbac().AddRolePermission(ctx, realmParam(req), helper.URLParamInt(req, "id"), payload.PermissionID); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Rbac().AddRolePermission(ctx, realmParam(req), rest.URLParamInt(req, "id"), payload.PermissionID); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // replaceRolePermissions godoc
@@ -225,14 +225,14 @@ func (h *RestHandler) replaceRolePermissions(rw http.ResponseWriter, req *http.R
 	defer trace.Finish()
 
 	var payload domain.RequestPermissionIDs
-	if !helper.DecodeBody(rw, req, h.validator, "rbac/replace_role_permissions", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "rbac/replace_role_permissions", &payload) {
 		return
 	}
-	if err := h.uc.Rbac().ReplaceRolePermissions(ctx, realmParam(req), helper.URLParamInt(req, "id"), payload.PermissionIDs); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Rbac().ReplaceRolePermissions(ctx, realmParam(req), rest.URLParamInt(req, "id"), payload.PermissionIDs); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // removeRolePermission godoc
@@ -247,11 +247,11 @@ func (h *RestHandler) removeRolePermission(rw http.ResponseWriter, req *http.Req
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "RbacDeliveryREST:RemoveRolePermission")
 	defer trace.Finish()
 
-	if err := h.uc.Rbac().RemoveRolePermission(ctx, realmParam(req), helper.URLParamInt(req, "id"), helper.URLParamInt(req, "permissionId")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Rbac().RemoveRolePermission(ctx, realmParam(req), rest.URLParamInt(req, "id"), rest.URLParamInt(req, "permissionId")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // getAllPermission godoc
@@ -266,12 +266,12 @@ func (h *RestHandler) getAllPermission(rw http.ResponseWriter, req *http.Request
 	defer trace.Finish()
 
 	var filter domain.FilterPermission
-	if !helper.ParseFilter(rw, req, h.validator, "rbac/get_all_permission", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "rbac/get_all_permission", &filter) {
 		return
 	}
 	result, err := h.uc.Rbac().GetAllPermission(ctx, realmParam(req), &filter)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	response := wrapper.NewHTTPResponse(http.StatusOK, "Success", result.Data)
@@ -291,12 +291,12 @@ func (h *RestHandler) getDetailPermission(rw http.ResponseWriter, req *http.Requ
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "RbacDeliveryREST:GetDetailPermission")
 	defer trace.Finish()
 
-	data, err := h.uc.Rbac().GetDetailPermission(ctx, realmParam(req), helper.URLParamInt(req, "id"))
+	data, err := h.uc.Rbac().GetDetailPermission(ctx, realmParam(req), rest.URLParamInt(req, "id"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // createPermission godoc
@@ -313,12 +313,12 @@ func (h *RestHandler) createPermission(rw http.ResponseWriter, req *http.Request
 	defer trace.Finish()
 
 	var payload domain.RequestPermission
-	if !helper.DecodeBody(rw, req, h.validator, "rbac/save_permission", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "rbac/save_permission", &payload) {
 		return
 	}
 	res, err := h.uc.Rbac().CreatePermission(ctx, realmParam(req), &payload)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	wrapper.NewHTTPResponse(http.StatusCreated, "Success", res).JSON(rw)
@@ -337,15 +337,15 @@ func (h *RestHandler) upsertPermissions(rw http.ResponseWriter, req *http.Reques
 	defer trace.Finish()
 
 	var payload domain.RequestPermissionBulk
-	if !helper.DecodeBody(rw, req, h.validator, "rbac/bulk_permission", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "rbac/bulk_permission", &payload) {
 		return
 	}
 	res, err := h.uc.Rbac().UpsertPermissions(ctx, realmParam(req), payload.Permissions)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, res)
+	rest.WriteOK(rw, res)
 }
 
 // updatePermission godoc
@@ -362,14 +362,14 @@ func (h *RestHandler) updatePermission(rw http.ResponseWriter, req *http.Request
 	defer trace.Finish()
 
 	var payload domain.RequestPermission
-	if !helper.DecodeBody(rw, req, h.validator, "rbac/save_permission", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "rbac/save_permission", &payload) {
 		return
 	}
-	if err := h.uc.Rbac().UpdatePermission(ctx, realmParam(req), helper.URLParamInt(req, "id"), &payload); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Rbac().UpdatePermission(ctx, realmParam(req), rest.URLParamInt(req, "id"), &payload); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // deletePermission godoc
@@ -383,9 +383,9 @@ func (h *RestHandler) deletePermission(rw http.ResponseWriter, req *http.Request
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "RbacDeliveryREST:DeletePermission")
 	defer trace.Finish()
 
-	if err := h.uc.Rbac().DeletePermission(ctx, realmParam(req), helper.URLParamInt(req, "id")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Rbac().DeletePermission(ctx, realmParam(req), rest.URLParamInt(req, "id")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }

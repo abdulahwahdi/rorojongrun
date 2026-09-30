@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"monorepo/globalshared/auth"
-	"monorepo/services/user/pkg/helper"
+	"monorepo/globalshared/rest"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
 	"monorepo/services/user/pkg/shared/repository"
 
@@ -35,7 +35,7 @@ func CallerRealm(ctx context.Context) string {
 // RequireMaster only lets callers authenticated in the master realm through
 func RequireMaster(ctx context.Context) error {
 	if CallerRealm(ctx) != MasterRealm {
-		return helper.NewForbidden("Forbidden: only the master realm can manage realms")
+		return rest.NewForbidden("Forbidden: only the master realm can manage realms")
 	}
 	return nil
 }
@@ -45,7 +45,7 @@ func RequireMaster(ctx context.Context) error {
 func AuthorizeRealm(ctx context.Context, realm string) error {
 	caller := CallerRealm(ctx)
 	if caller == "" || (caller != realm && caller != MasterRealm) {
-		return helper.NewForbidden("Forbidden: token of this realm cannot manage realm " + realm)
+		return rest.NewForbidden("Forbidden: token of this realm cannot manage realm " + realm)
 	}
 	return nil
 }
@@ -62,7 +62,7 @@ func ResolveRealm(ctx context.Context, repo repository.RepoSQL, name string) (sh
 func LoadRealm(ctx context.Context, repo repository.RepoSQL, name string) (shareddomain.Realm, error) {
 	realm, err := repo.RealmRepo().FindByName(ctx, name)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return realm, helper.NewNotFound("realm " + name + " not found")
+		return realm, rest.NewNotFound("realm " + name + " not found")
 	}
 	return realm, err
 }
@@ -70,7 +70,7 @@ func LoadRealm(ctx context.Context, repo repository.RepoSQL, name string) (share
 // NotFound converts gorm's not found into a 404 AppError for entity
 func NotFound(err error, entity string) error {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return helper.NewNotFound(entity + " not found")
+		return rest.NewNotFound(entity + " not found")
 	}
 	return err
 }

@@ -8,7 +8,11 @@ import (
 	"fmt"
 
 	// @candi:repositoryImport
+	exportrepo "monorepo/services/order/internal/modules/export/repository"
+	invoicerepo "monorepo/services/order/internal/modules/invoice/repository"
+	merchantrepo "monorepo/services/order/internal/modules/merchant/repository"
 	orderrepo "monorepo/services/order/internal/modules/order/repository"
+	shiftrepo "monorepo/services/order/internal/modules/shift/repository"
 
 	"github.com/golangid/candi/candishared"
 	"github.com/golangid/candi/tracer"
@@ -26,6 +30,14 @@ type (
 
 		// @candi:repositoryMethod
 		OrderRepo() orderrepo.OrderRepository
+		InvoiceRepo() invoicerepo.InvoiceRepository
+		MerchantRepo() merchantrepo.MerchantRepository
+		ShiftRepo() shiftrepo.ShiftRepository
+		ExportRepo() exportrepo.ExportRepository
+
+		// shared by several modules
+		SequenceRepo() SequenceRepository
+		OutboxRepo() OutboxRepository
 	}
 
 	repoSQLImpl struct {
@@ -33,7 +45,13 @@ type (
 
 		// register all repository from modules
 		// @candi:repositoryField
-		orderRepo orderrepo.OrderRepository
+		orderRepo    orderrepo.OrderRepository
+		invoiceRepo  invoicerepo.InvoiceRepository
+		merchantRepo merchantrepo.MerchantRepository
+		shiftRepo    shiftrepo.ShiftRepository
+		exportRepo   exportrepo.ExportRepository
+		sequenceRepo SequenceRepository
+		outboxRepo   OutboxRepository
 	}
 )
 
@@ -75,7 +93,13 @@ func NewRepositorySQL(readDB, writeDB *gorm.DB) RepoSQL {
 		readDB: readDB, writeDB: writeDB,
 
 		// @candi:repositoryConstructor
-		orderRepo: orderrepo.NewOrderRepoSQL(readDB, writeDB),
+		orderRepo:    orderrepo.NewOrderRepoSQL(readDB, writeDB),
+		invoiceRepo:  invoicerepo.NewInvoiceRepoSQL(readDB, writeDB),
+		merchantRepo: merchantrepo.NewMerchantRepoSQL(readDB, writeDB),
+		shiftRepo:    shiftrepo.NewShiftRepoSQL(readDB, writeDB),
+		exportRepo:   exportrepo.NewExportRepoSQL(readDB, writeDB),
+		sequenceRepo: &sequenceRepoSQL{db: writeDB},
+		outboxRepo:   &outboxRepoSQL{db: writeDB},
 	}
 }
 
@@ -127,4 +151,30 @@ func (r *repoSQLImpl) WithTransaction(ctx context.Context, txFunc func(ctx conte
 // @candi:repositoryImplementation
 func (r *repoSQLImpl) OrderRepo() orderrepo.OrderRepository {
 	return r.orderRepo
+}
+
+func (r *repoSQLImpl) InvoiceRepo() invoicerepo.InvoiceRepository {
+	return r.invoiceRepo
+}
+
+func (r *repoSQLImpl) MerchantRepo() merchantrepo.MerchantRepository {
+	return r.merchantRepo
+}
+
+func (r *repoSQLImpl) ShiftRepo() shiftrepo.ShiftRepository {
+	return r.shiftRepo
+}
+
+func (r *repoSQLImpl) ExportRepo() exportrepo.ExportRepository {
+	return r.exportRepo
+}
+
+// SequenceRepo gapless number sequences
+func (r *repoSQLImpl) SequenceRepo() SequenceRepository {
+	return r.sequenceRepo
+}
+
+// OutboxRepo transactional outbox
+func (r *repoSQLImpl) OutboxRepo() OutboxRepository {
+	return r.outboxRepo
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"monorepo/globalshared/gormx"
 	"monorepo/services/payment/internal/modules/payment/domain"
-	"monorepo/services/payment/pkg/helper"
 	shareddomain "monorepo/services/payment/pkg/shared/domain"
 
 	"github.com/golangid/candi/tracer"
@@ -22,7 +22,7 @@ func NewPaymentRepoSQL(readDB, writeDB *gorm.DB) PaymentRepository {
 	return &paymentRepoSQL{readDB: readDB, writeDB: writeDB}
 }
 
-func (r *paymentRepoSQL) db(ctx context.Context) *gorm.DB { return helper.DB(ctx, r.writeDB) }
+func (r *paymentRepoSQL) db(ctx context.Context) *gorm.DB { return gormx.DB(ctx, r.writeDB) }
 
 // save inserts when create is true, otherwise writes every column but the keys
 func (r *paymentRepoSQL) save(ctx context.Context, model any, create bool) error {
@@ -70,7 +70,7 @@ func (r *paymentRepoSQL) LockPayment(ctx context.Context, id string) (result sha
 	trace, ctx := tracer.StartTraceWithContext(ctx, "PaymentRepoSQL:LockPayment")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.ForUpdate(r.db(ctx)).Where("id = ?", id).First(&result).Error
+	err = gormx.ForUpdate(r.db(ctx)).Where("id = ?", id).First(&result).Error
 	return
 }
 
@@ -94,7 +94,7 @@ func (r *paymentRepoSQL) filterPayments(db *gorm.DB, f *domain.FilterPayment) *g
 		db = db.Where("created_at < ?", f.EndDate)
 	}
 	if f.Search != "" {
-		db = db.Where("(reference_id ILIKE ? OR description ILIKE ?)", helper.Like(f.Search), helper.Like(f.Search))
+		db = db.Where("(reference_id ILIKE ? OR description ILIKE ?)", gormx.Like(f.Search), gormx.Like(f.Search))
 	}
 	return db
 }
@@ -104,7 +104,7 @@ func (r *paymentRepoSQL) FetchAllPayments(ctx context.Context, f *domain.FilterP
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
 	db := r.filterPayments(r.db(ctx), f)
-	err = helper.ApplyPaging(db, &f.Filter, "created_at", "created_at", "updated_at", "amount", "status").Find(&data).Error
+	err = gormx.ApplyPaging(db, &f.Filter, "created_at", "created_at", "updated_at", "amount", "status").Find(&data).Error
 	return
 }
 
@@ -204,7 +204,7 @@ func (r *paymentRepoSQL) FetchAllCallbackLogs(ctx context.Context, f *domain.Fil
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
 	db := r.filterLogs(r.db(ctx), f)
-	err = helper.ApplyPaging(db, &f.Filter, "id", "id", "created_at", "status").Find(&data).Error
+	err = gormx.ApplyPaging(db, &f.Filter, "id", "id", "created_at", "status").Find(&data).Error
 	return
 }
 
@@ -236,6 +236,6 @@ func (r *paymentRepoSQL) LockPendingOutbox(ctx context.Context, limit int) (data
 	trace, ctx := tracer.StartTraceWithContext(ctx, "PaymentRepoSQL:LockPendingOutbox")
 	defer func() { trace.Finish(tracer.FinishWithError(err)) }()
 
-	err = helper.ForUpdateSkipLocked(r.db(ctx)).Where("published_at IS NULL").Order("id ASC").Limit(limit).Find(&data).Error
+	err = gormx.ForUpdateSkipLocked(r.db(ctx)).Where("published_at IS NULL").Order("id ASC").Limit(limit).Find(&data).Error
 	return
 }

@@ -9,6 +9,7 @@ import (
 
 	"monorepo/globalshared/auth"
 	"monorepo/globalshared/crypto"
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -26,7 +27,7 @@ type cachedKey struct {
 func (uc *authUsecaseImpl) signingKey(ctx context.Context, realmID int) (*cachedKey, error) {
 	key, err := uc.repoSQL.RealmKeyRepo().FindActive(ctx, realmID)
 	if err != nil {
-		return nil, helper.NewInvalid("realm has no active signing key")
+		return nil, rest.NewInvalid("realm has no active signing key")
 	}
 	uc.keyMu.RLock()
 	c, ok := uc.keyCache[key.KID]

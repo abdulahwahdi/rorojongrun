@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/user/domain"
-	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
 	"monorepo/services/user/pkg/shared/usecase/common"
 
@@ -82,7 +82,7 @@ func (uc *userUsecaseImpl) ReplaceUserRoles(ctx context.Context, realm string, u
 	}
 	roleIDs = uniqueInts(roleIDs)
 	if len(roleIDs) > 0 && uc.repoSQL.UserRepo().CountRolesByIDs(ctx, r.ID, roleIDs) != len(roleIDs) {
-		return helper.NewInvalid("one or more roles do not exist in realm " + realm)
+		return rest.NewInvalid("one or more roles do not exist in realm " + realm)
 	}
 	return uc.repoSQL.UserRepo().ReplaceRoles(ctx, user.ID, roleIDs)
 }

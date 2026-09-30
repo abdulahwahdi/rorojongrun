@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/auth/domain"
 	"monorepo/services/user/pkg/helper"
 	shareddomain "monorepo/services/user/pkg/shared/domain"
@@ -45,18 +46,18 @@ func (uc *authUsecaseImpl) loadClient(ctx context.Context, realm shareddomain.Re
 	client, err := uc.repoSQL.ClientRepo().FindByClientID(ctx, realm.ID, req.ClientID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return client, helper.NewUnauthorized("invalid client")
+			return client, rest.NewUnauthorized("invalid client")
 		}
 		return client, err
 	}
 	if !client.Enabled {
-		return client, helper.NewUnauthorized("invalid client")
+		return client, rest.NewUnauthorized("invalid client")
 	}
 	if client.Type == shareddomain.ClientTypeConfidential && !helper.CheckSecret(client.SecretHash, req.ClientSecret) {
-		return client, helper.NewUnauthorized("invalid client credentials")
+		return client, rest.NewUnauthorized("invalid client credentials")
 	}
 	if !grantAllowed(client, req.GrantType) {
-		return client, helper.NewUnauthorized("grant type " + req.GrantType + " is not allowed for this client")
+		return client, rest.NewUnauthorized("grant type " + req.GrantType + " is not allowed for this client")
 	}
 	return client, nil
 }
@@ -71,7 +72,7 @@ func (uc *authUsecaseImpl) Token(ctx context.Context, realmName string, req *dom
 		return res, err
 	}
 	if !realm.Enabled {
-		return res, helper.NewForbidden("realm " + realmName + " is disabled")
+		return res, rest.NewForbidden("realm " + realmName + " is disabled")
 	}
 	client, err := uc.loadClient(ctx, realm, req)
 	if err != nil {
@@ -88,16 +89,16 @@ func (uc *authUsecaseImpl) Token(ctx context.Context, realmName string, req *dom
 	case domain.GrantOTP:
 		return uc.grantOTP(ctx, realm, client, req, meta)
 	}
-	return res, helper.NewInvalid("unsupported grant type " + req.GrantType)
+	return res, rest.NewInvalid("unsupported grant type " + req.GrantType)
 }
 
 // activeUser rejects users that may not log in
 func activeUser(user shareddomain.User) error {
 	if user.Status == shareddomain.UserStatusDisabled {
-		return helper.NewForbidden("account is disabled")
+		return rest.NewForbidden("account is disabled")
 	}
 	if user.LockedUntil != nil && user.LockedUntil.After(time.Now()) {
-		return helper.NewLocked("account is temporarily locked, try again later")
+		return rest.NewLocked("account is temporarily locked, try again later")
 	}
 	return nil
 }
@@ -110,7 +111,7 @@ func (uc *authUsecaseImpl) grantPassword(ctx context.Context, realm shareddomain
 	}
 	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && user.IsServiceAccount) {
 		burnPasswordCheck(req.Password)
-		return res, helper.NewUnauthorized("invalid credentials")
+		return res, rest.NewUnauthorized("invalid credentials")
 	}
 	if err != nil {
 		return res, err
@@ -137,7 +138,7 @@ func (uc *authUsecaseImpl) registerFailure(ctx context.Context, realm shareddoma
 	if err := uc.repoSQL.UserRepo().Save(ctx, &user); err != nil {
 		return err
 	}
-	return helper.NewUnauthorized("invalid credentials")
+	return rest.NewUnauthorized("invalid credentials")
 }
 
 // loginSucceeded resets the lockout counters and issues a session with tokens
@@ -180,7 +181,7 @@ func (uc *authUsecaseImpl) issueSession(ctx context.Context, realm shareddomain.
 }
 
 func (uc *authUsecaseImpl) grantRefreshToken(ctx context.Context, realm shareddomain.Realm, client shareddomain.Client, req *domain.RequestToken, meta domain.ClientMeta) (res domain.ResponseToken, err error) {
-	invalid := helper.NewUnauthorized("invalid refresh token")
+	invalid := rest.NewUnauthorized("invalid refresh token")
 	session, err := uc.repoSQL.SessionRepo().FindByRefreshHash(ctx, helper.SHA256Hex(req.RefreshToken))
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return res, invalid
@@ -195,7 +196,7 @@ func (uc *authUsecaseImpl) grantRefreshToken(ctx context.Context, realm shareddo
 		if err = uc.repoSQL.SessionRepo().RevokeFamily(ctx, session.FamilyID); err != nil {
 			return res, err
 		}
-		return res, helper.NewUnauthorized("refresh token reuse detected, the session was revoked")
+		return res, rest.NewUnauthorized("refresh token reuse detected, the session was revoked")
 	}
 	user, err := uc.repoSQL.UserRepo().Find(ctx, realm.ID, session.UserID)
 	if err != nil || user.Status == shareddomain.UserStatusDisabled {
@@ -217,18 +218,18 @@ func (uc *authUsecaseImpl) grantRefreshToken(ctx context.Context, realm shareddo
 		if revokeErr := uc.repoSQL.SessionRepo().RevokeFamily(ctx, session.FamilyID); revokeErr != nil {
 			return res, revokeErr
 		}
-		return res, helper.NewUnauthorized("refresh token reuse detected, the session was revoked")
+		return res, rest.NewUnauthorized("refresh token reuse detected, the session was revoked")
 	}
 	return
 }
 
 func (uc *authUsecaseImpl) grantClientCredentials(ctx context.Context, realm shareddomain.Realm, client shareddomain.Client) (res domain.ResponseToken, err error) {
 	if client.Type != shareddomain.ClientTypeConfidential || client.ServiceUserID == nil {
-		return res, helper.NewUnauthorized("client_credentials requires a confidential client")
+		return res, rest.NewUnauthorized("client_credentials requires a confidential client")
 	}
 	user, err := uc.repoSQL.UserRepo().Find(ctx, realm.ID, *client.ServiceUserID)
 	if err != nil {
-		return res, helper.NewUnauthorized("service account not found")
+		return res, rest.NewUnauthorized("service account not found")
 	}
 	access, expiresIn, err := uc.signAccessToken(ctx, realm, client.ClientID, user, 0)
 	if err != nil {
@@ -239,14 +240,14 @@ func (uc *authUsecaseImpl) grantClientCredentials(ctx context.Context, realm sha
 
 func (uc *authUsecaseImpl) grantOTP(ctx context.Context, realm shareddomain.Realm, client shareddomain.Client, req *domain.RequestToken, meta domain.ClientMeta) (res domain.ResponseToken, err error) {
 	if !realm.OTPLoginEnabled {
-		return res, helper.NewForbidden("otp login is not enabled for this realm")
+		return res, rest.NewForbidden("otp login is not enabled for this realm")
 	}
 	notifier := uc.notification()
 	if notifier == nil {
-		return res, helper.NewInvalid("otp login is not configured")
+		return res, rest.NewInvalid("otp login is not configured")
 	}
 	email := strings.ToLower(strings.TrimSpace(req.Email))
-	invalid := helper.NewUnauthorized("invalid or expired code")
+	invalid := rest.NewUnauthorized("invalid or expired code")
 	user, err := uc.repoSQL.UserRepo().FindByEmail(ctx, realm.ID, email)
 	if errors.Is(err, gorm.ErrRecordNotFound) || (err == nil && user.IsServiceAccount) {
 		return res, invalid

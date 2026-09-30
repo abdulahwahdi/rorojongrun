@@ -3,8 +3,8 @@ package resthandler
 import (
 	"net/http"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/realm/domain"
-	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared/usecase"
 
 	"github.com/golangid/candi/candihelper"
@@ -34,17 +34,17 @@ func NewRestHandler(uc usecase.Usecase, deps dependency.Dependency) *RestHandler
 func (h *RestHandler) Mount(root interfaces.RESTRouter) {
 	base := candihelper.V1 + "/realms"
 
-	root.GET(base, h.getAllRealm, helper.Secure(h.mw, "getAllRealm")...)
-	root.POST(base, h.createRealm, helper.Secure(h.mw, "createRealm")...)
-	root.GET(base+"/:realm", h.getDetailRealm, helper.Secure(h.mw, "getDetailRealm")...)
-	root.PUT(base+"/:realm", h.updateRealm, helper.Secure(h.mw, "updateRealm")...)
-	root.DELETE(base+"/:realm", h.deleteRealm, helper.Secure(h.mw, "deleteRealm")...)
+	root.GET(base, h.getAllRealm, rest.Secure(h.mw, "getAllRealm")...)
+	root.POST(base, h.createRealm, rest.Secure(h.mw, "createRealm")...)
+	root.GET(base+"/:realm", h.getDetailRealm, rest.Secure(h.mw, "getDetailRealm")...)
+	root.PUT(base+"/:realm", h.updateRealm, rest.Secure(h.mw, "updateRealm")...)
+	root.DELETE(base+"/:realm", h.deleteRealm, rest.Secure(h.mw, "deleteRealm")...)
 
-	root.GET(base+"/:realm/keys", h.getAllRealmKey, helper.Secure(h.mw, "getAllRealmKey")...)
-	root.POST(base+"/:realm/keys/rotate", h.rotateRealmKey, helper.Secure(h.mw, "rotateRealmKey")...)
-	root.GET(base+"/:realm/keys/:id", h.getDetailRealmKey, helper.Secure(h.mw, "getDetailRealmKey")...)
-	root.PUT(base+"/:realm/keys/:id", h.updateRealmKey, helper.Secure(h.mw, "updateRealmKey")...)
-	root.DELETE(base+"/:realm/keys/:id", h.deleteRealmKey, helper.Secure(h.mw, "deleteRealmKey")...)
+	root.GET(base+"/:realm/keys", h.getAllRealmKey, rest.Secure(h.mw, "getAllRealmKey")...)
+	root.POST(base+"/:realm/keys/rotate", h.rotateRealmKey, rest.Secure(h.mw, "rotateRealmKey")...)
+	root.GET(base+"/:realm/keys/:id", h.getDetailRealmKey, rest.Secure(h.mw, "getDetailRealmKey")...)
+	root.PUT(base+"/:realm/keys/:id", h.updateRealmKey, rest.Secure(h.mw, "updateRealmKey")...)
+	root.DELETE(base+"/:realm/keys/:id", h.deleteRealmKey, rest.Secure(h.mw, "deleteRealmKey")...)
 
 	// public discovery documents
 	root.GET(base+"/:realm/.well-known/jwks.json", h.getJWKS)
@@ -63,12 +63,12 @@ func (h *RestHandler) getAllRealm(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var filter domain.FilterRealm
-	if !helper.ParseFilter(rw, req, h.validator, "realm/get_all", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "realm/get_all", &filter) {
 		return
 	}
 	result, err := h.uc.Realm().GetAllRealm(ctx, &filter)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	response := wrapper.NewHTTPResponse(http.StatusOK, "Success", result.Data)
@@ -89,10 +89,10 @@ func (h *RestHandler) getDetailRealm(rw http.ResponseWriter, req *http.Request) 
 
 	data, err := h.uc.Realm().GetDetailRealm(ctx, restserver.URLParam(req, "realm"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // createRealm godoc
@@ -108,12 +108,12 @@ func (h *RestHandler) createRealm(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestRealm
-	if !helper.DecodeBody(rw, req, h.validator, "realm/save", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "realm/save", &payload) {
 		return
 	}
 	res, err := h.uc.Realm().CreateRealm(ctx, &payload)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	wrapper.NewHTTPResponse(http.StatusCreated, "Success", res).JSON(rw)
@@ -132,14 +132,14 @@ func (h *RestHandler) updateRealm(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestRealm
-	if !helper.DecodeBody(rw, req, h.validator, "realm/update", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "realm/update", &payload) {
 		return
 	}
 	if err := h.uc.Realm().UpdateRealm(ctx, restserver.URLParam(req, "realm"), &payload); err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // deleteRealm godoc
@@ -153,10 +153,10 @@ func (h *RestHandler) deleteRealm(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	if err := h.uc.Realm().DeleteRealm(ctx, restserver.URLParam(req, "realm")); err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // getAllRealmKey godoc
@@ -171,12 +171,12 @@ func (h *RestHandler) getAllRealmKey(rw http.ResponseWriter, req *http.Request) 
 	defer trace.Finish()
 
 	var filter domain.FilterRealmKey
-	if !helper.ParseFilter(rw, req, h.validator, "realm/get_all_key", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "realm/get_all_key", &filter) {
 		return
 	}
 	result, err := h.uc.Realm().GetAllRealmKey(ctx, restserver.URLParam(req, "realm"), &filter)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	response := wrapper.NewHTTPResponse(http.StatusOK, "Success", result.Data)
@@ -196,12 +196,12 @@ func (h *RestHandler) getDetailRealmKey(rw http.ResponseWriter, req *http.Reques
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "RealmDeliveryREST:GetDetailRealmKey")
 	defer trace.Finish()
 
-	data, err := h.uc.Realm().GetDetailRealmKey(ctx, restserver.URLParam(req, "realm"), helper.URLParamInt(req, "id"))
+	data, err := h.uc.Realm().GetDetailRealmKey(ctx, restserver.URLParam(req, "realm"), rest.URLParamInt(req, "id"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // rotateRealmKey godoc
@@ -217,7 +217,7 @@ func (h *RestHandler) rotateRealmKey(rw http.ResponseWriter, req *http.Request) 
 
 	res, err := h.uc.Realm().RotateRealmKey(ctx, restserver.URLParam(req, "realm"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	wrapper.NewHTTPResponse(http.StatusCreated, "Success", res).JSON(rw)
@@ -237,14 +237,14 @@ func (h *RestHandler) updateRealmKey(rw http.ResponseWriter, req *http.Request) 
 	defer trace.Finish()
 
 	var payload domain.RequestRealmKey
-	if !helper.DecodeBody(rw, req, h.validator, "realm/update_key", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "realm/update_key", &payload) {
 		return
 	}
-	if err := h.uc.Realm().UpdateRealmKey(ctx, restserver.URLParam(req, "realm"), helper.URLParamInt(req, "id"), &payload); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Realm().UpdateRealmKey(ctx, restserver.URLParam(req, "realm"), rest.URLParamInt(req, "id"), &payload); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // deleteRealmKey godoc
@@ -258,11 +258,11 @@ func (h *RestHandler) deleteRealmKey(rw http.ResponseWriter, req *http.Request) 
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "RealmDeliveryREST:DeleteRealmKey")
 	defer trace.Finish()
 
-	if err := h.uc.Realm().DeleteRealmKey(ctx, restserver.URLParam(req, "realm"), helper.URLParamInt(req, "id")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Realm().DeleteRealmKey(ctx, restserver.URLParam(req, "realm"), rest.URLParamInt(req, "id")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // getJWKS godoc
@@ -276,7 +276,7 @@ func (h *RestHandler) getJWKS(rw http.ResponseWriter, req *http.Request) {
 
 	data, err := h.uc.Realm().GetJWKS(ctx, restserver.URLParam(req, "realm"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	rw.Header().Set("Cache-Control", "public, max-age=60")
@@ -294,7 +294,7 @@ func (h *RestHandler) getOpenIDConfiguration(rw http.ResponseWriter, req *http.R
 
 	data, err := h.uc.Realm().GetOpenIDConfiguration(ctx, restserver.URLParam(req, "realm"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	writeRawJSON(rw, data)

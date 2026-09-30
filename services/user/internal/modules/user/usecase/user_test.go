@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/user/domain"
 	"monorepo/services/user/pkg/helper"
 	mockauthrepo "monorepo/services/user/pkg/mocks/modules/auth/repository"
@@ -88,7 +89,7 @@ func Test_CreateUser(t *testing.T) {
 				}
 			}
 			_, err := h.uc.CreateUser(masterCtx(), "acme", req())
-			assert.Equal(t, 409, helper.HTTPStatus(err), taken)
+			assert.Equal(t, 409, rest.HTTPStatus(err), taken)
 			h.users.AssertNotCalled(t, "Save", mock.Anything, mock.Anything)
 		}
 	})
@@ -98,25 +99,25 @@ func Test_CreateUser(t *testing.T) {
 		r := req()
 		r.Password = "short"
 		_, err := h.uc.CreateUser(masterCtx(), "acme", r)
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 
 		r = req()
 		r.Status = "locked"
 		_, err = h.uc.CreateUser(masterCtx(), "acme", r)
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 
 		free(h)
 		h.users.On("CountRolesByIDs", mock.Anything, 1, []int{2}).Return(0)
 		_, err = h.uc.CreateUser(masterCtx(), "acme", req())
-		assert.Equal(t, 400, helper.HTTPStatus(err))
+		assert.Equal(t, 400, rest.HTTPStatus(err))
 	})
 
 	t.Run("cannot administer another realm", func(t *testing.T) {
 		h := newHarness(t)
 		_, err := h.uc.CreateUser(realmCtx("globex"), "acme", req())
-		assert.Equal(t, 403, helper.HTTPStatus(err))
+		assert.Equal(t, 403, rest.HTTPStatus(err))
 		_, err = h.uc.CreateUser(context.Background(), "acme", req())
-		assert.Equal(t, 403, helper.HTTPStatus(err))
+		assert.Equal(t, 403, rest.HTTPStatus(err))
 	})
 }
 
@@ -149,7 +150,7 @@ func Test_UpdateUser(t *testing.T) {
 		h := newHarness(t)
 		h.users.On("Find", mock.Anything, 1, 5).Return(existing, nil)
 		h.users.On("FindByUsername", mock.Anything, 1, "alice").Return(shareddomain.User{ID: 6}, nil)
-		assert.Equal(t, 409, helper.HTTPStatus(h.uc.UpdateUser(masterCtx(), "acme", 5, req)))
+		assert.Equal(t, 409, rest.HTTPStatus(h.uc.UpdateUser(masterCtx(), "acme", 5, req)))
 	})
 
 	t.Run("service accounts are managed through their client", func(t *testing.T) {
@@ -157,15 +158,15 @@ func Test_UpdateUser(t *testing.T) {
 		svc := existing
 		svc.IsServiceAccount = true
 		h.users.On("Find", mock.Anything, 1, 5).Return(svc, nil)
-		assert.Equal(t, 409, helper.HTTPStatus(h.uc.UpdateUser(masterCtx(), "acme", 5, req)))
-		assert.Equal(t, 409, helper.HTTPStatus(h.uc.DeleteUser(masterCtx(), "acme", 5)))
-		assert.Equal(t, 409, helper.HTTPStatus(h.uc.SetPassword(masterCtx(), "acme", 5, "password1")))
+		assert.Equal(t, 409, rest.HTTPStatus(h.uc.UpdateUser(masterCtx(), "acme", 5, req)))
+		assert.Equal(t, 409, rest.HTTPStatus(h.uc.DeleteUser(masterCtx(), "acme", 5)))
+		assert.Equal(t, 409, rest.HTTPStatus(h.uc.SetPassword(masterCtx(), "acme", 5, "password1")))
 	})
 
 	t.Run("not found", func(t *testing.T) {
 		h := newHarness(t)
 		h.users.On("Find", mock.Anything, 1, 5).Return(shareddomain.User{}, errNF)
-		assert.Equal(t, 404, helper.HTTPStatus(h.uc.UpdateUser(masterCtx(), "acme", 5, req)))
+		assert.Equal(t, 404, rest.HTTPStatus(h.uc.UpdateUser(masterCtx(), "acme", 5, req)))
 	})
 }
 
@@ -180,7 +181,7 @@ func Test_SetPassword_and_DeleteUser_revokeSessions(t *testing.T) {
 	h.sessions.On("RevokeByUser", mock.Anything, 5).Return(nil)
 	assert.NoError(t, h.uc.SetPassword(masterCtx(), "acme", 5, "new-password"))
 	h.sessions.AssertCalled(t, "RevokeByUser", mock.Anything, 5)
-	assert.Equal(t, 400, helper.HTTPStatus(h.uc.SetPassword(masterCtx(), "acme", 5, "short")))
+	assert.Equal(t, 400, rest.HTTPStatus(h.uc.SetPassword(masterCtx(), "acme", 5, "short")))
 
 	h = newHarness(t)
 	h.users.On("Find", mock.Anything, 1, 5).Return(existing, nil)
@@ -197,10 +198,10 @@ func Test_UserRoles(t *testing.T) {
 	h.roles.On("Find", mock.Anything, 1, 3).Return(shareddomain.Role{}, errNF)
 	h.users.On("AddRole", mock.Anything, 5, 2).Return(nil)
 	assert.NoError(t, h.uc.AddUserRole(masterCtx(), "acme", 5, 2))
-	assert.Equal(t, 404, helper.HTTPStatus(h.uc.AddUserRole(masterCtx(), "acme", 5, 3)), "role of another realm / missing")
+	assert.Equal(t, 404, rest.HTTPStatus(h.uc.AddUserRole(masterCtx(), "acme", 5, 3)), "role of another realm / missing")
 
 	h.users.On("CountRolesByIDs", mock.Anything, 1, []int{2, 3}).Return(1)
-	assert.Equal(t, 400, helper.HTTPStatus(h.uc.ReplaceUserRoles(masterCtx(), "acme", 5, []int{2, 3, 3})))
+	assert.Equal(t, 400, rest.HTTPStatus(h.uc.ReplaceUserRoles(masterCtx(), "acme", 5, []int{2, 3, 3})))
 	h.users.On("CountRolesByIDs", mock.Anything, 1, []int{2}).Return(1)
 	h.users.On("ReplaceRoles", mock.Anything, 5, []int{2}).Return(nil)
 	assert.NoError(t, h.uc.ReplaceUserRoles(masterCtx(), "acme", 5, []int{2}))

@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "merchantId": { "type": "string", "maxLength": 100 },
+    "outletId": { "type": "string", "maxLength": 100 },
+    "cashierId": { "type": "string", "maxLength": 100 },
+    "openingFloat": { "type": "integer", "minimum": 0 },
+    "note": { "type": "string", "maxLength": 500 }
+  },
+  "additionalProperties": false
+}

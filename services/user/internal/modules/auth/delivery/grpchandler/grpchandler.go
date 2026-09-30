@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"monorepo/globalshared/rest"
 	proto "monorepo/sdk/user/proto/auth"
 	"monorepo/services/user/internal/modules/auth/domain"
 	"monorepo/services/user/pkg/helper"
@@ -44,7 +45,7 @@ func (h *GRPCHandler) Register(server *grpc.Server, mwGroup *types.MiddlewareGro
 }
 
 func grpcError(err error) error {
-	var appErr *helper.AppError
+	var appErr *rest.AppError
 	if errors.As(err, &appErr) {
 		switch appErr.Status {
 		case 404:

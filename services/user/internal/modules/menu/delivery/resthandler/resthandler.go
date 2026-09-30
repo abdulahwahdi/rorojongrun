@@ -3,8 +3,8 @@ package resthandler
 import (
 	"net/http"
 
+	"monorepo/globalshared/rest"
 	"monorepo/services/user/internal/modules/menu/domain"
-	"monorepo/services/user/pkg/helper"
 	"monorepo/services/user/pkg/shared/usecase"
 
 	"github.com/golangid/candi/candihelper"
@@ -34,11 +34,11 @@ func NewRestHandler(uc usecase.Usecase, deps dependency.Dependency) *RestHandler
 func (h *RestHandler) Mount(root interfaces.RESTRouter) {
 	base := candihelper.V1 + "/realms/:realm/clients/:id/menus"
 
-	root.GET(base, h.getAllMenu, helper.Secure(h.mw, "getAllMenu")...)
-	root.POST(base, h.createMenu, helper.Secure(h.mw, "createMenu")...)
-	root.GET(base+"/:menuId", h.getDetailMenu, helper.Secure(h.mw, "getDetailMenu")...)
-	root.PUT(base+"/:menuId", h.updateMenu, helper.Secure(h.mw, "updateMenu")...)
-	root.DELETE(base+"/:menuId", h.deleteMenu, helper.Secure(h.mw, "deleteMenu")...)
+	root.GET(base, h.getAllMenu, rest.Secure(h.mw, "getAllMenu")...)
+	root.POST(base, h.createMenu, rest.Secure(h.mw, "createMenu")...)
+	root.GET(base+"/:menuId", h.getDetailMenu, rest.Secure(h.mw, "getDetailMenu")...)
+	root.PUT(base+"/:menuId", h.updateMenu, rest.Secure(h.mw, "updateMenu")...)
+	root.DELETE(base+"/:menuId", h.deleteMenu, rest.Secure(h.mw, "deleteMenu")...)
 }
 
 func realmParam(req *http.Request) string  { return restserver.URLParam(req, "realm") }
@@ -58,12 +58,12 @@ func (h *RestHandler) getAllMenu(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var filter domain.FilterMenu
-	if !helper.ParseFilter(rw, req, h.validator, "menu/get_all", &filter) {
+	if !rest.ParseFilter(rw, req, h.validator, "menu/get_all", &filter) {
 		return
 	}
 	result, err := h.uc.Menu().GetAllMenu(ctx, realmParam(req), clientParam(req), &filter)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	response := wrapper.NewHTTPResponse(http.StatusOK, "Success", result.Data)
@@ -84,12 +84,12 @@ func (h *RestHandler) getDetailMenu(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "MenuDeliveryREST:GetDetailMenu")
 	defer trace.Finish()
 
-	data, err := h.uc.Menu().GetDetailMenu(ctx, realmParam(req), clientParam(req), helper.URLParamInt(req, "menuId"))
+	data, err := h.uc.Menu().GetDetailMenu(ctx, realmParam(req), clientParam(req), rest.URLParamInt(req, "menuId"))
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw, data)
+	rest.WriteOK(rw, data)
 }
 
 // createMenu godoc
@@ -107,12 +107,12 @@ func (h *RestHandler) createMenu(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestMenu
-	if !helper.DecodeBody(rw, req, h.validator, "menu/save", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "menu/save", &payload) {
 		return
 	}
 	res, err := h.uc.Menu().CreateMenu(ctx, realmParam(req), clientParam(req), &payload)
 	if err != nil {
-		helper.WriteError(rw, err)
+		rest.WriteError(rw, err)
 		return
 	}
 	wrapper.NewHTTPResponse(http.StatusCreated, "Success", res).JSON(rw)
@@ -133,14 +133,14 @@ func (h *RestHandler) updateMenu(rw http.ResponseWriter, req *http.Request) {
 	defer trace.Finish()
 
 	var payload domain.RequestMenu
-	if !helper.DecodeBody(rw, req, h.validator, "menu/save", &payload) {
+	if !rest.DecodeBody(rw, req, h.validator, "menu/save", &payload) {
 		return
 	}
-	if err := h.uc.Menu().UpdateMenu(ctx, realmParam(req), clientParam(req), helper.URLParamInt(req, "menuId"), &payload); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Menu().UpdateMenu(ctx, realmParam(req), clientParam(req), rest.URLParamInt(req, "menuId"), &payload); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }
 
 // deleteMenu godoc
@@ -155,9 +155,9 @@ func (h *RestHandler) deleteMenu(rw http.ResponseWriter, req *http.Request) {
 	trace, ctx := tracer.StartTraceWithContext(req.Context(), "MenuDeliveryREST:DeleteMenu")
 	defer trace.Finish()
 
-	if err := h.uc.Menu().DeleteMenu(ctx, realmParam(req), clientParam(req), helper.URLParamInt(req, "menuId")); err != nil {
-		helper.WriteError(rw, err)
+	if err := h.uc.Menu().DeleteMenu(ctx, realmParam(req), clientParam(req), rest.URLParamInt(req, "menuId")); err != nil {
+		rest.WriteError(rw, err)
 		return
 	}
-	helper.WriteOK(rw)
+	rest.WriteOK(rw)
 }

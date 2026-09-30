@@ -1,5 +1,6 @@
 bin
 vendor
 main_service.go
-order
+/order
 coverage.txt
+/storage/
